@@ -65,11 +65,31 @@
         </select>
       </label>
     </div>
-    <h1>
-      {options ? 'Make yourself at home.' : 'Pick up where you left off.'}
-    </h1>
-    <p class="muted">Chromium Session Transfer</p>
+    <div class="page-heading">
+      {#if !options}
+        <img src="/app-icon-128.png" width="64" height="64" alt="" />
+      {/if}
+      <div>
+        <h1>
+          {options ? 'Make yourself at home.' : 'Pick up where you left off.'}
+        </h1>
+        <p class="muted">Chromium Session Transfer</p>
+      </div>
+    </div>
     {#if themeError}<p role="status" class="error">{themeError}</p>{/if}
   </header>
   {#if options}<Options />{:else}<Picker />{/if}
 </main>
+
+<style>
+  /* Keep the picker icon beside both lines without shrinking it */
+  .page-heading {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .page-heading img {
+    flex-shrink: 0;
+  }
+</style>
