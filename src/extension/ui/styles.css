@@ -1,36 +1,41 @@
 :root {
   /* The base palette shared by the semantic colors below */
   --base-white: #ffffff;
-  --base-cream: #f6f5f1;
-  --base-ink-950: #182b29;
-  --base-ink-700: #425653;
-  --base-ink-500: #657571;
-  --base-ink-200: #d9e0da;
-  /* A pale green-gray that is darker than the light page and panels */
-  --base-ink-50: #eef1ed;
-  --base-green-700: #235c48;
-  --base-green-100: #e6f1e7;
+  /* A cool near-white for the light page background */
+  --base-slate-50: #f4f6fb;
+  --base-ink-950: #1c293d;
+  --base-ink-700: #45556e;
+  --base-ink-500: #5e6c84;
+  --base-ink-200: #d7deeb;
+  /* A pale blue-gray that is darker than the light page and panels */
+  --base-ink-50: #eaf0f8;
+  /* The icon's deep Chromium blue for accents on light backgrounds */
+  --base-blue-700: #0051d0;
+  /* A soft blue background for light accent messages */
+  --base-blue-100: #e8f0fe;
   --base-red-700: #a73535;
   --base-red-100: #fceeee;
   --base-amber-100: #fff4d9;
   --base-amber-800: #70531a;
-  --base-night-950: #111a19;
-  --base-night-900: #1a2725;
+  --base-night-950: #111827;
+  --base-night-900: #1b2435;
   /* A raised dark tone that is lighter than the dark page and panels */
-  --base-night-800: #263632;
-  --base-night-700: #405651;
-  --base-mist-100: #e5eeea;
-  --base-mist-300: #c1d0ca;
-  --base-mist-400: #a4b8af;
-  --base-mint-300: #90d7b2;
-  --base-mint-950: #213d30;
+  --base-night-800: #28354b;
+  --base-night-700: #43526a;
+  --base-mist-100: #e7edf8;
+  --base-mist-300: #c3cee2;
+  --base-mist-400: #a6b5cf;
+  /* The icon's pale Chromium blue for accents on dark backgrounds */
+  --base-blue-300: #8dbdff;
+  /* A deep blue background for dark accent messages */
+  --base-blue-950: #1c3356;
   --base-rose-300: #ffaaaa;
   --base-rose-950: #402626;
   --base-gold-300: #ebce86;
   --base-gold-950: #39311e;
 
   /* The semantic palette assigns a purpose to each base color */
-  --color-page: light-dark(var(--base-cream), var(--base-night-950));
+  --color-page: light-dark(var(--base-slate-50), var(--base-night-950));
   --color-surface: light-dark(var(--base-white), var(--base-night-900));
   /* Distinguish editable controls from the surface behind them */
   --color-field: light-dark(var(--base-ink-50), var(--base-night-800));
@@ -38,8 +43,8 @@
   --color-secondary: light-dark(var(--base-ink-700), var(--base-mist-300));
   --color-muted: light-dark(var(--base-ink-500), var(--base-mist-400));
   --color-border: light-dark(var(--base-ink-200), var(--base-night-700));
-  --color-accent: light-dark(var(--base-green-700), var(--base-mint-300));
-  --color-accent-soft: light-dark(var(--base-green-100), var(--base-mint-950));
+  --color-accent: light-dark(var(--base-blue-700), var(--base-blue-300));
+  --color-accent-soft: light-dark(var(--base-blue-100), var(--base-blue-950));
   --color-on-accent: light-dark(var(--base-white), var(--base-night-950));
   --color-danger: light-dark(var(--base-red-700), var(--base-rose-300));
   --color-danger-soft: light-dark(var(--base-red-100), var(--base-rose-950));
