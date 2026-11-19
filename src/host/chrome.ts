@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import puppeteer from 'puppeteer-core';
 import type {
   Browser,
@@ -214,23 +215,37 @@ async function preparePage(browser: Browser, origin: string): Promise<Page> {
 // Remove cookies in the selected domain scopes without clearing unrelated sites
 async function clearCookies(
   session: CDPSession,
+  page: Page,
   domains: string[],
   sites: string[],
 ): Promise<void> {
   // The current default-profile cookies, kept inside the native helper
   const { cookies } = await session.send('Storage.getCookies');
-  for (const cookie of cookies) {
-    if (
-      !domains.includes(cookie.domain) ||
-      !selectedPartition(cookie.partitionKey, sites)
-    )
-      continue;
-    await session.send('Network.deleteCookies', {
-      name: cookie.name,
-      domain: cookie.domain,
-      path: cookie.path,
-      partitionKey: cookie.partitionKey,
-    });
+  // Chromium exposes Network commands on page targets, not the browser target
+  const network = await page.createCDPSession();
+  try {
+    for (const cookie of cookies) {
+      if (
+        !domains.includes(cookie.domain) ||
+        !selectedPartition(cookie.partitionKey, sites)
+      )
+        continue;
+      await network.send('Network.deleteCookies', {
+        name: cookie.name,
+        domain: cookie.domain,
+        path: cookie.path,
+        partitionKey: cookie.partitionKey,
+      });
+    }
+  } finally {
+    await network
+      .detach()
+      .catch((error: unknown) =>
+        logError(
+          'Could not detach the cookie deletion debugging session',
+          error,
+        ),
+      );
   }
 }
 
@@ -370,10 +385,20 @@ export async function importToChrome(
       await restoreStorage(backups.get(origin.origin)!.page, origin);
       // The readback detects schema, record, or Web Storage differences early
       const restored = await readStorage(backups.get(origin.origin)!.page);
-      if (JSON.stringify(restored) !== JSON.stringify(origin)) {
-        throw new Error(
-          'Destination website storage did not match the source snapshot',
-        );
+      // Extension and CDP transports can return object properties in different
+      // orders; compare their contents while preserving array and graph order
+      // The storage section named in an error without including its contents
+      for (const section of [
+        'origin',
+        'local',
+        'session',
+        'databases',
+      ] as const) {
+        if (!isDeepStrictEqual(restored[section], origin[section])) {
+          throw new Error(
+            `Destination website storage did not match the source snapshot (${section})`,
+          );
+        }
       }
     }
     for (let index = 0; index < pages.length; index++) {
@@ -390,7 +415,7 @@ export async function importToChrome(
       );
       if (
         !restored.ok ||
-        JSON.stringify(restored.snapshot?.session) !== JSON.stringify(entries)
+        !isDeepStrictEqual(restored.snapshot?.session, entries)
       ) {
         throw new Error(
           'Destination sessionStorage did not match its source tab',
@@ -400,7 +425,7 @@ export async function importToChrome(
     phase = 'restoring cookies';
     logStep(phase);
     cookiesTouched = true;
-    await clearCookies(session, domains, sites);
+    await clearCookies(session, pages[0], domains, sites);
     await session.send('Storage.setCookies', {
       cookies: payload.cookies.map(cookieInput),
     });
@@ -472,7 +497,7 @@ export async function importToChrome(
     }
     if (cookiesTouched && session) {
       try {
-        await clearCookies(session, domains, sites);
+        await clearCookies(session, pages[0], domains, sites);
         await session.send('Storage.setCookies', {
           cookies: previousCookies.map(checkpointCookie),
         });
