@@ -6,10 +6,10 @@
     "strict": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
-    "rootDir": "src",
-    "outDir": "dist",
+    "rootDir": "..",
+    "outDir": "../../dist",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node", "chrome"]
   },
-  "include": ["src/host", "src/shared"]
+  "include": [".", "../shared"]
 }
