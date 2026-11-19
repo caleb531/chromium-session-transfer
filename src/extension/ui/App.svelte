@@ -67,7 +67,7 @@
     </div>
     <div class="page-heading">
       {#if !options}
-        <img src="/app-icon-128.png" width="64" height="64" alt="" />
+        <img src="/app-icon.svg" width="76" height="76" alt="" />
       {/if}
       <div>
         <h1>
