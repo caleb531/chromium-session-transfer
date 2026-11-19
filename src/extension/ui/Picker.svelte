@@ -266,25 +266,23 @@
       disabled={busy}
     />
   </label>
-  <div class="row between wrap" style="margin-top: 16px">
+  <label class="row" style="margin-top: 16px">
+    <input
+      type="checkbox"
+      aria-label={search ? 'Select all results' : 'Select all tabs'}
+      checked={allVisible}
+      indeterminate={someVisible}
+      disabled={busy || !ready || !visible.length}
+      onchange={(event) => {
+        setSelection(
+          visible.map((tab) => tab.id!),
+          event.currentTarget.checked,
+        );
+        anchor = null;
+      }}
+    />
     <small>{selected.length} selected · {tabs.length} available</small>
-    <label class="row">
-      <input
-        type="checkbox"
-        checked={allVisible}
-        indeterminate={someVisible}
-        disabled={busy || !ready || !visible.length}
-        onchange={(event) => {
-          setSelection(
-            visible.map((tab) => tab.id!),
-            event.currentTarget.checked,
-          );
-          anchor = null;
-        }}
-      />
-      {search ? 'Select all results' : 'Select all'}
-    </label>
-  </div>
+  </label>
   <div style="margin-top: 12px">
     {#each visible as tab (tab.id)}
       <label class="tab row">
