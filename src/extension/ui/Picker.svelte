@@ -443,7 +443,7 @@
   Cookies, localStorage, IndexedDB, and each tab’s sessionStorage will be copied
   for the selected top-level origins. This replaces stored data for those
   origins in {destination.name}. Close existing {destination.name} tabs for those
-  origins first. SSO discovery and other embedded origins are outside this MVP.
+  origins first. Separate SSO providers and embedded sites are not included automatically.
 </p>
 <p class="muted">
   Your browser may request parent-domain access to include shared cookies (for

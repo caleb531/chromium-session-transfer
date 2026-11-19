@@ -210,7 +210,7 @@ async function buildBundle(entry: string): Promise<string> {
 // Register an on-demand host in the selected source browser's lookup directory
 async function install(): Promise<void> {
   if (process.platform !== 'darwin') {
-    throw new Error('The MVP installer currently supports macOS only');
+    throw new Error('The installer supports macOS only');
   }
   // The source defaults to Brave; the extension ID remains an optional argument
   const { values, positionals } = parseArgs({
