@@ -4,7 +4,7 @@ import type { BrowserId } from './browsers.js';
 export const HOST_NAME = 'com.calebevans.chromium_session_transfer';
 
 // The format version shared by the extension and native helper
-export const FORMAT_VERSION = 3;
+export const FORMAT_VERSION = 4;
 
 // A JSON-safe node in a graph of structured IndexedDB values
 export interface ValueNode {
@@ -133,3 +133,18 @@ export interface HostResult {
   // A user-facing result without exported storage contents
   message: string;
 }
+
+// Live status and final completion share one native messaging connection
+export type HostMessage =
+  | {
+      // Distinguish a live status update from the final transfer result
+      type: 'progress';
+      // A credential-free status shown in the picker
+      message: string;
+    }
+  | {
+      // Distinguish the final result from interim status updates
+      type: 'result';
+      // The completion result, including failures that keep source tabs open
+      result: HostResult;
+    };

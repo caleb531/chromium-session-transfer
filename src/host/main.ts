@@ -1,6 +1,10 @@
 import { endianness } from 'node:os';
 import { importToBrowser } from './restore.js';
-import type { HostResult, TransferPayload } from '../shared/protocol.js';
+import type {
+  HostMessage,
+  HostResult,
+  TransferPayload,
+} from '../shared/protocol.js';
 import { describeError } from '../shared/errors.js';
 import { logError, logStep } from './log.js';
 import { checkBrowserAccess } from './browser.js';
@@ -35,9 +39,9 @@ async function readMessage(): Promise<TransferPayload> {
 }
 
 // Return a credential-free result using Chromium's native framing protocol
-function reply(result: HostResult): void {
+function reply(message: HostMessage): void {
   // The small status response serialized without any transfer payload values
-  const body = Buffer.from(JSON.stringify(result), 'utf8');
+  const body = Buffer.from(JSON.stringify(message), 'utf8');
   // The native byte-order length prefix required by the browser
   const header = Buffer.alloc(4);
   if (endianness() === 'LE') header.writeUInt32LE(body.length);
@@ -60,7 +64,9 @@ async function main(): Promise<void> {
   // The request is kept only in process memory until this helper exits
   let result: HostResult;
   try {
-    result = await importToBrowser(await readMessage());
+    result = await importToBrowser(await readMessage(), (message) => {
+      reply({ type: 'progress', message });
+    });
   } catch (cause) {
     logError('Native helper request failed', cause);
     result = {
@@ -68,7 +74,7 @@ async function main(): Promise<void> {
       message: `The helper could not process this transfer: ${describeError(cause)}`,
     };
   }
-  reply(result);
+  reply({ type: 'result', result });
   logStep(
     result.ok
       ? 'Transfer completed; helper exiting'

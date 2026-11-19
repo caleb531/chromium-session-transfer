@@ -1,6 +1,7 @@
 import { FORMAT_VERSION, HOST_NAME } from '../shared/protocol.js';
 import type {
   HostResult,
+  HostMessage,
   StorageSnapshot,
   TransferPayload,
 } from '../shared/protocol.js';
@@ -9,6 +10,62 @@ import { cookieSite, selectedPartition } from '../shared/sites.js';
 import { describeError } from '../shared/errors.js';
 import { BROWSERS } from '../shared/browsers.js';
 import type { BrowserId } from '../shared/browsers.js';
+
+// Receive live helper status until the one final result arrives
+function sendToHelper(
+  payload: TransferPayload,
+  report: (message: string) => void,
+): Promise<HostResult> {
+  return new Promise((resolve, reject) => {
+    // A browser-managed native port stays open for this transfer only
+    const port = chrome.runtime.connectNative(HOST_NAME);
+
+    // Stop handling events once the result or a disconnection settles the request
+    function cleanup(): void {
+      port.onMessage.removeListener(receive);
+      port.onDisconnect.removeListener(disconnected);
+    }
+
+    // Display status updates without mistaking them for a completed transfer
+    function receive(message: HostMessage): void {
+      if (message.type === 'progress') {
+        report(message.message);
+        return;
+      }
+      cleanup();
+      port.disconnect();
+      if (message.type !== 'result') {
+        reject(
+          new Error(
+            'Unknown native helper response; rebuild and reload the extension',
+          ),
+        );
+        return;
+      }
+      resolve(message.result);
+    }
+
+    // Preserve the native host's actual error when it exits without a result
+    function disconnected(): void {
+      // Chrome exposes this error only while the disconnect callback is running
+      const reason =
+        chrome.runtime.lastError?.message ??
+        'The native helper disconnected before completing the transfer';
+      cleanup();
+      reject(new Error(reason));
+    }
+
+    port.onMessage.addListener(receive);
+    port.onDisconnect.addListener(disconnected);
+    try {
+      port.postMessage(payload);
+    } catch (cause) {
+      cleanup();
+      port.disconnect();
+      reject(cause);
+    }
+  });
+}
 
 // Capture every supported store before sending a single payload to the helper
 export async function transferTabs(
@@ -120,10 +177,7 @@ export async function transferTabs(
     `Waiting for ${BROWSERS[destination].name}; approve its connection request if shown…`,
   );
   try {
-    return (await chrome.runtime.sendNativeMessage(
-      HOST_NAME,
-      payload,
-    )) as HostResult;
+    return await sendToHelper(payload, report);
   } catch (cause) {
     console.error('[chromium-session-transfer] Native messaging failed', cause);
     throw new Error(`Native helper connection failed: ${describeError(cause)}`);

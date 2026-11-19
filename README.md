@@ -304,6 +304,13 @@ the transfer flow creates no log files. Installation temporarily captures only
 the access check's status JSON and startup diagnostics in a private directory,
 then deletes it; no browser file contents or session data enter those files.
 
+During a transfer, a native messaging port carries credential-free progress
+updates followed by one final result. Closing the picker disconnects that port;
+the browser manages the helper process lifetime. After updating this protocol,
+rebuild the helper and reload the extension together. This requires no app
+bundle reinstall or permission reset because the compiled logic stays outside
+the signed bundle.
+
 There is no automated test suite in this iteration. Disposable Chrome databases
 have verified IndexedDB counter capture, restoration, and rollback. Real Brave →
 Chrome transfers have been accepted by NetSuite and ServiceNow. A new source or

@@ -254,13 +254,19 @@ async function clearCookies(
 // Restore supported stored state before allowing the destination pages to load
 export async function importToBrowser(
   payload: TransferPayload,
+  report: (message: string) => void = () => undefined,
 ): Promise<HostResult> {
   validatePayload(payload);
+  // Keep stderr diagnostics and the picker's live status in sync
+  function progress(message: string): void {
+    logStep(message);
+    report(message);
+  }
   // The selected browser whose name appears in progress and failure messages
   const destination = BROWSERS[payload.destination];
   // The connection detached at the end while the destination stays open
   let browser: Browser;
-  logStep(`Connecting to the existing ${destination.name} default context`);
+  progress(`Connecting to the existing ${destination.name} default context`);
   try {
     browser = await connectBrowser(payload.destination);
   } catch (cause) {
@@ -307,7 +313,7 @@ export async function importToBrowser(
   let session: CDPSession | undefined;
   // The current phase used in errors without printing exported records
   let phase = 'checking the destination';
-  logStep(phase);
+  progress(phase);
   try {
     session = await browser.target().createCDPSession();
     // The live default-profile cookies before replacing the selected scopes
@@ -360,11 +366,11 @@ export async function importToBrowser(
       }
     }
     phase = 'preparing destination pages';
-    logStep(phase);
+    progress(phase);
     for (const tab of payload.tabs)
       pages.push(await preparePage(browser, tab.origin));
     phase = 'capturing destination backups';
-    logStep(phase);
+    progress(phase);
     for (const origin of payload.origins) {
       // The first script-free tab for this shared origin
       const page =
@@ -375,7 +381,7 @@ export async function importToBrowser(
       });
     }
     phase = 'restoring website storage';
-    logStep(phase);
+    progress(phase);
     for (const origin of payload.origins) {
       touched.add(origin.origin);
       await restoreStorage(backups.get(origin.origin)!.page, origin);
@@ -419,7 +425,7 @@ export async function importToBrowser(
       }
     }
     phase = 'restoring cookies';
-    logStep(phase);
+    progress(phase);
     cookiesTouched = true;
     await clearCookies(session, pages[0], domains, sites);
     await session.send('Storage.setCookies', {
@@ -454,7 +460,7 @@ export async function importToBrowser(
       }
     }
     phase = 'opening transferred pages';
-    logStep(phase);
+    progress(phase);
     navigating = true;
     for (let index = 0; index < pages.length; index++) {
       await pages[index].setRequestInterception(false);
@@ -465,7 +471,7 @@ export async function importToBrowser(
         timeout: 45000,
       });
     }
-    logStep(`Opened ${pages.length} destination tabs`);
+    progress(`Opened ${pages.length} destination tabs`);
     return {
       ok: true,
       count: pages.length,
