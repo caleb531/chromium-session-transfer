@@ -7,8 +7,9 @@ Transfer selected tabs and their stored sessions between running Chromium
 browsers. By default, the extension sends tabs from Brave to Google Chrome,
 including cookies, localStorage, IndexedDB, and per-tab sessionStorage.
 
-Brave → Google Chrome has been verified with NetSuite and ServiceNow. Chrome →
-Brave is configurable but has not yet been verified end to end.
+Brave → Google Chrome has been verified with NetSuite and ServiceNow. Other
+configured browsers and transfer directions have not yet been verified end to
+end.
 
 ## Development setup
 
@@ -17,7 +18,8 @@ Brave is configurable but has not yet been verified end to end.
 - macOS; the native helper installer currently supports macOS only
 - Node.js 24 or newer and pnpm (the project pins pnpm 12.8.1)
 - Apple Command Line Tools
-- Brave and Google Chrome, using Chromium 144 or newer for this workflow
+- Source and destination browsers from the table below, using Chromium 144 or
+  newer for this workflow
 
 If Apple Command Line Tools are not installed, run:
 
@@ -132,7 +134,21 @@ shared authentication cookies may belong to that parent domain.
 The **source** is the browser where you load and use the extension. The
 **destination** is selected in the picker or Settings.
 
-The installer accepts `brave` and `chrome`:
+Use these browser IDs with `--source` and `--target`:
+
+| Browser        | ID         | Load the extension at | Enable destination debugging at      |
+| -------------- | ---------- | --------------------- | ------------------------------------ |
+| Google Chrome  | `chrome`   | `chrome://extensions` | `chrome://inspect/#remote-debugging` |
+| Brave          | `brave`    | `brave://extensions`  | `brave://inspect/#remote-debugging`  |
+| Microsoft Edge | `edge`     | `edge://extensions`   | `edge://inspect/#remote-debugging`   |
+| Opera          | `opera`    | `opera://extensions`  | `opera://inspect/#remote-debugging`  |
+| Chromium       | `chromium` | `chrome://extensions` | `chrome://inspect/#remote-debugging` |
+
+These entries cover standard installations (stable channels where applicable),
+not Beta/Dev/Canary channels or Opera GX, Air, and Neon. Destination use requires
+the **Allow remote debugging for this browser instance** checkbox. If your browser
+version does not offer that checkbox, its registry entry alone does not enable
+it as a destination. Opera's checkbox workflow remains unverified.
 
 ```sh
 # Default: use the extension in Brave and check Chrome access
@@ -140,6 +156,9 @@ pnpm host:install --source brave --target chrome
 
 # Use the extension in Chrome and check Brave access
 pnpm host:install --source chrome --target brave
+
+# Use the extension in Edge and check Chromium access
+pnpm host:install --source edge --target chromium
 ```
 
 `--source` chooses where to register the native messaging helper. The optional
@@ -147,11 +166,17 @@ pnpm host:install --source chrome --target brave
 it defaults to `chrome`. **It does not change the extension's destination.**
 Choose that separately in the picker or Settings.
 
-For Chrome as the source, load `dist/extension` at `chrome://extensions`. For
-Brave as the destination, keep it open and enable debugging at
-`brave://inspect/#remote-debugging`, then grant **Brave** access under the helper
-in Files & Folders. Destination debugging support still needs verification for
-that browser/version.
+Load `dist/extension` in the source browser using its extensions page from the
+table. Keep the destination open with remote debugging enabled, and grant that
+browser access under the helper in Files & Folders.
+
+Browser locations and setup instructions follow the
+[Edge native messaging guide](https://learn.microsoft.com/en-us/microsoft-edge/extensions/developer-guide/native-messaging),
+[Edge debugging guide](https://learn.microsoft.com/en-us/microsoft-edge/web-platform/devtools-mcp-server),
+[Opera native messaging guide](https://help.opera.com/en/extensions/message-passing/),
+[Opera profile guidance](https://blogs.opera.com/desktop/2023/08/resolving-profile-loss-issues-in-opera-version-102-0-4880-16/),
+[Chromium data directory documentation](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md),
+and [Chromium native messaging guide](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging).
 
 Use the browsers' standard installations and regular profiles. Custom data
 directories, incognito destinations, and transferring into the same
@@ -231,8 +256,9 @@ sending them. Some websites may still require you to sign in again.
 pnpm host:uninstall --source brave
 ```
 
-Use `--source chrome` if appropriate. Remove the extension separately in the
-source browser. Brave and Chrome share the helper registration on macOS, so this
-removes it for both. Imported website data is kept.
+Choose the appropriate `--source` for your browser. Remove the extension
+separately in the source browser. Brave, Chrome, and Opera share the helper
+registration on macOS, so uninstalling for any of them removes that shared
+registration. Imported website data is kept.
 
 See [LICENSE.txt](LICENSE.txt) for the MIT license.

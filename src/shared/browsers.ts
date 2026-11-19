@@ -26,6 +26,29 @@ export const BROWSERS = {
     nativeHostDirectory: 'Google/Chrome',
     debuggingUrl: 'brave://inspect/#remote-debugging',
   },
+  // The stable Edge installation; native hosts live in its own data root
+  edge: {
+    name: 'Microsoft Edge',
+    dataDirectory: 'Microsoft Edge',
+    nativeHostDirectory: 'Microsoft Edge',
+    debuggingUrl: 'edge://inspect/#remote-debugging',
+  },
+  // The regular Opera installation, excluding GX, Air, and Neon
+  opera: {
+    name: 'Opera',
+    dataDirectory: 'com.operasoftware.Opera',
+    // Opera documents Chrome's directory for macOS native messaging hosts
+    // https://help.opera.com/en/extensions/message-passing/
+    nativeHostDirectory: 'Google/Chrome',
+    debuggingUrl: 'opera://inspect/#remote-debugging',
+  },
+  // The unbranded Chromium installation retains the chrome:// internal scheme
+  chromium: {
+    name: 'Chromium',
+    dataDirectory: 'Chromium',
+    nativeHostDirectory: 'Chromium',
+    debuggingUrl: 'chrome://inspect/#remote-debugging',
+  },
 } satisfies Record<string, BrowserDefinition>;
 
 // The short browser names accepted by settings, the protocol, and the installer
