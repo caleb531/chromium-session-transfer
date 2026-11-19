@@ -15,21 +15,38 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
 };
 
+// The saved settings, including arrays serialized as objects by older builds
+type StoredSettings = Omit<Partial<Settings>, 'patterns'> & {
+  // The domain list or its older numeric-key representation
+  patterns?: string[] | Record<string, string>;
+};
+
 // Read the preferences without storing any exported website state
 export async function readSettings(): Promise<Settings> {
   // The extension's persisted preferences
-  const saved = await chrome.storage.local.get<{ settings?: Settings }>(
+  const saved = await chrome.storage.local.get<{ settings?: StoredSettings }>(
     'settings',
   );
-  return { ...DEFAULT_SETTINGS, ...saved.settings };
+  return {
+    ...DEFAULT_SETTINGS,
+    ...saved.settings,
+    // Recover the numeric-key objects written from Svelte proxy arrays
+    patterns: Object.values(saved.settings?.patterns ?? []),
+  };
 }
 
 // Save changed preferences without overwriting other open pages' choices
 export async function writeSettings(
   patch: Partial<Settings>,
 ): Promise<Settings> {
-  // The latest preferences with only the requested fields replaced
-  const settings = { ...(await readSettings()), ...patch };
+  // The latest preferences before applying this page's changes
+  const current = await readSettings();
+  // A plain array prevents Chrome from serializing Svelte proxies as objects
+  const settings = {
+    ...current,
+    ...patch,
+    patterns: [...(patch.patterns ?? current.patterns)],
+  };
   await chrome.storage.local.set({ settings });
   return settings;
 }

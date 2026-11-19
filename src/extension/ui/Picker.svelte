@@ -94,9 +94,9 @@
       tabs = current;
       settings = saved;
       ready = true;
-    } catch {
+    } catch (cause) {
       if (requestId !== refreshId || busy) return;
-      message = 'Could not read open tabs';
+      message = `Could not read open tabs: ${cause instanceof Error ? cause.message : 'Unknown error'}`;
       error = true;
     }
   }
