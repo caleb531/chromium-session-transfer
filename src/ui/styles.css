@@ -1,0 +1,215 @@
+:root {
+  /* The base palette shared by the semantic colors below */
+  --base-white: #ffffff;
+  --base-cream: #f6f5f1;
+  --base-ink-950: #182b29;
+  --base-ink-700: #425653;
+  --base-ink-500: #657571;
+  --base-ink-200: #d9e0da;
+  --base-green-700: #235c48;
+  --base-green-100: #e6f1e7;
+  --base-red-700: #a73535;
+  --base-red-100: #fceeee;
+  --base-amber-100: #fff4d9;
+  --base-amber-800: #70531a;
+
+  /* The semantic palette assigns a purpose to each base color */
+  --color-page: var(--base-cream);
+  --color-surface: var(--base-white);
+  --color-text: var(--base-ink-950);
+  --color-secondary: var(--base-ink-700);
+  --color-muted: var(--base-ink-500);
+  --color-border: var(--base-ink-200);
+  --color-accent: var(--base-green-700);
+  --color-accent-soft: var(--base-green-100);
+  --color-on-accent: var(--base-white);
+  --color-danger: var(--base-red-700);
+  --color-danger-soft: var(--base-red-100);
+  --color-notice: var(--base-amber-800);
+  --color-notice-soft: var(--base-amber-100);
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: var(--color-text);
+  background: var(--color-page);
+  font-synthesis: none;
+  line-height: 1.55;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 48px 28px 80px;
+}
+header {
+  margin-bottom: 32px;
+}
+h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  margin: 12px 0;
+}
+h2 {
+  font-size: 20px;
+  margin: 0 0 12px;
+}
+p {
+  margin: 8px 0 16px;
+}
+a {
+  color: var(--color-accent);
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 8px;
+  padding: 9px 15px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button.primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+button.danger {
+  color: var(--color-danger);
+}
+input[type='text'],
+select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+input[type='checkbox'] {
+  accent-color: var(--color-accent);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+.eyebrow {
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+.muted,
+small {
+  color: var(--color-muted);
+}
+.panel {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.between {
+  justify-content: space-between;
+}
+.stack {
+  display: grid;
+  gap: 12px;
+}
+.notice {
+  color: var(--color-notice);
+  background: var(--color-notice-soft);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.error {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.success {
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.tab {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.tab:last-child {
+  border-bottom: 0;
+}
+.tab-text {
+  min-width: 0;
+  flex: 1;
+}
+.tab-title {
+  display: block;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tab-url {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+code {
+  overflow-wrap: anywhere;
+}
+label.field {
+  display: grid;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  main {
+    padding: 28px 16px;
+  }
+  .panel {
+    padding: 18px;
+  }
+  .row.wrap {
+    flex-wrap: wrap;
+  }
+}

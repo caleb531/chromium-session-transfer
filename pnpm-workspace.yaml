@@ -1,0 +1,3 @@
+# Node provides spawnSync; the browser launcher does not need its old shim
+allowBuilds:
+  spawn-sync: false

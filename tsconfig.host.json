@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "rootDir": "src",
+    "outDir": "dist/host",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "chrome"]
+  },
+  "include": ["src/host", "src/shared"]
+}

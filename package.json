@@ -1,0 +1,46 @@
+{
+  "name": "chrome-session-transfer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Transfer selected Brave tabs and their stored sessions to Chrome",
+  "author": "Caleb Evans",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build && pnpm build:host",
+    "build:host": "tsc -p tsconfig.host.json",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.host.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "host:install": "node dist/host/host/install.js",
+    "host:uninstall": "node dist/host/host/install.js --uninstall"
+  },
+  "dependencies": {
+    "puppeteer-core": "^25.18.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@types/chrome": "^0.3.7",
+    "@types/node": "^24.19.2",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.7",
+    "eslint-plugin-svelte": "^3.24.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "prettier-plugin-svelte": "^4.2.0",
+    "svelte": "^5.57.3",
+    "svelte-check": "^4.7.8",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vite": "^8.3.8",
+    "vite-plugin-web-extension": "^4.5.1"
+  }
+}

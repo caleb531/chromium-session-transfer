@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Chrome Session Transfer",
+  "version": "0.1.0",
+  "description": "Send selected Brave tabs and their stored sessions to Chrome",
+  "minimum_chrome_version": "144",
+  "permissions": ["tabs", "cookies", "scripting", "storage", "nativeMessaging"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "src/extension/background.ts",
+    "type": "module"
+  },
+  "action": { "default_title": "Send to Chrome" },
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+C" },
+      "description": "Choose tabs to send to Chrome"
+    }
+  }
+}
