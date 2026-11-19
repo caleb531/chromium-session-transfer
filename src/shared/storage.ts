@@ -524,8 +524,12 @@ export async function websiteStorage(
                 else store.put(record.value);
               }
             }
-          } catch {
+          } catch (cause) {
             transaction.abort();
+            // Wait for rollback before closing the database; consume the
+            // expected abort rejection so it doesn't hide the original error
+            await done.catch(() => undefined);
+            throw cause;
           }
           await done;
         }
