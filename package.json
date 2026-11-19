@@ -18,8 +18,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "host:install": "node dist/host/host/install.js",
-    "host:uninstall": "node dist/host/host/install.js --uninstall"
+    "host:install": "node dist/host/install.js",
+    "host:uninstall": "node dist/host/install.js --uninstall"
   },
   "dependencies": {
     "puppeteer-core": "^25.18.1",

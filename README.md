@@ -264,8 +264,17 @@ src/
   shared/            Browser registry, transfer types, cookie scope, and serializer
 ```
 
-The extension is built into `dist/extension`; the Node helper is compiled into
-`dist/host`. The old `spawn-sync` install script in the web-extension plugin's
+Build output mirrors the source directories; Vite bundles shared code into the
+extension, while the Node helper imports the emitted shared modules:
+
+```text
+dist/
+  extension/         Bundled extension pages and background worker
+  host/              Compiled native helper and installer
+  shared/            Compiled shared modules used by the native helper
+```
+
+The old `spawn-sync` install script in the web-extension plugin's
 browser-launch dependency tree is explicitly denied: Node already supplies
 `spawnSync`, and automatic browser launching is disabled.
 

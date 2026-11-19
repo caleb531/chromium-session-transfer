@@ -25,7 +25,7 @@ async function buildBundle(entry: string): Promise<string> {
   // The stable development bundle, separate from the disposable build output
   const bundle = resolve(
     dirname(entry),
-    '../../../.local/Chromium Session Transfer Helper.app',
+    '../../.local/Chromium Session Transfer Helper.app',
   );
   // The directory containing the app's native entry point and Node runtime
   const executables = resolve(bundle, 'Contents/MacOS');
@@ -36,7 +36,7 @@ async function buildBundle(entry: string): Promise<string> {
   // The Mach-O executable registered with the source browser
   const launcher = resolve(executables, 'session-transfer-helper');
   // The native launcher source remains in the developer's checkout
-  const source = resolve(dirname(entry), '../../../src/host/macos/launcher.m');
+  const source = resolve(dirname(entry), '../../src/host/macos/launcher.m');
   execFileSync(
     '/usr/bin/xcrun',
     ['clang', '-fobjc-arc', '-framework', 'Foundation', source, '-o', launcher],
@@ -158,7 +158,7 @@ async function builtExtensionId(): Promise<string> {
   // The source manifest whose public key also ships in the extension build
   const manifest = JSON.parse(
     await readFile(
-      new URL('../../extension/manifest.json', import.meta.url),
+      new URL('../extension/manifest.json', import.meta.url),
       'utf8',
     ),
   ) as { key: string };
