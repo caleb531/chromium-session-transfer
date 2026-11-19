@@ -191,7 +191,7 @@
   {#each Object.entries(BROWSERS) as [id, browser] (id)}
     <p>
       <strong>{browser.name}</strong><br /><code>
-        pnpm host:install --source {id}
+        pnpm host:install --source {id} --target {settings.destination}
         {extensionId}
       </code>
     </p>
@@ -200,8 +200,9 @@
     Keep {destination.name} open and enable remote debugging at
     <code>
       {destination.debuggingUrl}
-    </code>. The helper runs only during transfers. No authentication data is
-    saved in extension settings.
+    </code>. Installation checks access to that destination without connecting
+    to it or reading session data. No authentication data is saved in extension
+    settings.
   </p>
   <small>Extension ID: {extensionId}</small>
 </section>

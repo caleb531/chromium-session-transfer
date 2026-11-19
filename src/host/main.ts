@@ -3,6 +3,8 @@ import { importToBrowser } from './restore.js';
 import type { HostResult, TransferPayload } from '../shared/protocol.js';
 import { describeError } from '../shared/errors.js';
 import { logError, logStep } from './log.js';
+import { checkBrowserAccess } from './browser.js';
+import { isBrowserId } from '../shared/browsers.js';
 
 // The native messaging request size accepted by Chromium
 const MAX_MESSAGE_BYTES = 64 * 1024 * 1024;
@@ -45,6 +47,15 @@ function reply(result: HostResult): void {
 
 // Handle exactly one transfer and exit after the destination connection is detached
 async function main(): Promise<void> {
+  if (process.argv[2] === '--check-access') {
+    // Setup launches this mode through Launch Services to attribute access to
+    // the bundled helper rather than the terminal running the installer
+    const destination = process.argv[3];
+    if (!isBrowserId(destination))
+      throw new Error('Unknown destination browser');
+    process.stdout.write(JSON.stringify(await checkBrowserAccess(destination)));
+    return;
+  }
   logStep('Native helper started; waiting for the extension request');
   // The request is kept only in process memory until this helper exits
   let result: HostResult;

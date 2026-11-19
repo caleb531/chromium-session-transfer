@@ -23,13 +23,14 @@ register for Chrome as a source:
 
 ```sh
 pnpm host:install --source brave
-pnpm host:install --source chrome
+pnpm host:install --source chrome --target brave
 ```
 
 The installer registers the helper where the **source** browser looks for native
-hosts. The destination is saved in the extension and can change without
-reinstallation; it is not an installer argument. Both current browser definitions
-use
+hosts. The actual transfer destination is saved in the extension and can change
+without reinstallation. The optional `--target` selects which destination's
+permissions to check during setup; it defaults to Chrome and does not change
+the extension's saved destination. Both current browser definitions use
 `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`. Brave on
 macOS deliberately reads Chrome's registration directory; see
 [Brave's startup code](https://github.com/brave/brave-core/blob/master/app/brave_main_delegate.cc).
@@ -46,9 +47,15 @@ launch a browser, create a daemon, or change your Codex configuration.
 
 The installer also registers the signed app with macOS Launch Services, so
 system components can find it by bundle ID when displaying privacy entries.
-This registration does not grant data access. If the helper is missing from
-Files & Folders, rerun the installer, quit and reopen System Settings, and
-retry a transfer to request access under the current app identity.
+It then launches the app in the background through Launch Services for a
+read-only access check against the target's `DevToolsActivePort` file. The check
+opens and closes the file without reading its contents or connecting to CDP.
+The app's access attempt lets macOS create the Files & Folders entry during
+setup; registration alone does not create a permission request. If access is
+blocked, the installer tells you to quit and reopen System Settings and enable
+the target under the helper. No failed transfer is needed. Keep the target open
+with remote debugging enabled so its endpoint exists; a missing endpoint is
+reported separately. Neither registration nor the check grants access for you.
 
 The development bundle is ad-hoc signed, with Node's original signature retained.
 The installer compares signing identities before and after rebuilding. If an
@@ -71,14 +78,17 @@ For manual recovery from a stale privacy grant, run:
 
 ```sh
 pnpm host:reset-permissions
+# Or check another destination after resetting:
+pnpm host:reset-permissions --target brave
 ```
 
 This resets only the helper's macOS privacy approvals, including any destination
 browser grants. It does not rebuild the app, grant access, or reset other apps.
-Quit and reopen System Settings to refresh its permission list, retry a transfer,
-then enable the destination in Files & Folders again. The installer prints this
-reminder after either an automatic or manual reset; it does not quit System
-Settings for you. This is an explicit recovery command; normal installation handles identity changes
+After resetting, it runs the same access check to create the destination's
+permission entry again. Quit and reopen System Settings to refresh the list,
+then enable the destination in Files & Folders. The tool prints this reminder
+when access is denied; it does not quit System Settings for you. This is an
+explicit recovery command; normal installation handles identity changes
 automatically. A reset never grants access on your behalf.
 
 Load the extension in the **source** browser:
@@ -290,7 +300,9 @@ native helper writes timestamped stages and error stacks (including nested
 causes) to stderr, which the browser handles as native-host diagnostic output.
 Stdout is reserved for native-message framing. On-screen failures include the
 underlying cause. Neither logger dumps transfer payloads or CDP traffic, and
-the tool creates no log files.
+the transfer flow creates no log files. Installation temporarily captures only
+the access check's status JSON and startup diagnostics in a private directory,
+then deletes it; no browser file contents or session data enter those files.
 
 There is no automated test suite in this iteration. Disposable Chrome databases
 have verified IndexedDB counter capture, restoration, and rollback. Real Brave →

@@ -2,14 +2,16 @@ import {
   chmod,
   copyFile,
   mkdir,
+  mkdtemp,
   readFile,
+  rm,
   stat,
   unlink,
   utimes,
   writeFile,
 } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HOST_NAME } from '../shared/protocol.js';
@@ -21,9 +23,16 @@ import {
   DEFAULT_SOURCE,
   isBrowserId,
 } from '../shared/browsers.js';
+import type { BrowserId } from '../shared/browsers.js';
+import type { BrowserAccessResult } from './browser.js';
 
 // The app identity used by both the bundle and macOS privacy permission resets
 const BUNDLE_ID = 'com.calebevans.chromium-session-transfer.helper';
+
+// The stable app location shared by installation and manual permission recovery
+const BUNDLE_PATH = fileURLToPath(
+  new URL('../../.local/Chromium Session Transfer Helper.app', import.meta.url),
+);
 
 // Read the identity macOS uses to recognize updates; no bundle means first install
 async function signingIdentity(bundle: string): Promise<string | undefined> {
@@ -52,13 +61,63 @@ function resetPermissions(): void {
   });
 }
 
+// Launch a read-only setup check as the app, without starting a transfer
+async function requestBrowserAccess(target: BrowserId): Promise<void> {
+  // Only status JSON and startup diagnostics enter these private temporary files
+  const temporary = await mkdtemp(
+    resolve(tmpdir(), 'chromium-session-transfer-access-'),
+  );
+  // The permission status emitted by the helper's setup mode
+  const report = resolve(temporary, 'result.json');
+  // The helper's startup errors, kept separately from its status JSON
+  const errors = resolve(temporary, 'stderr.log');
+  try {
+    process.stdout.write(
+      `Checking ${BROWSERS[target].name} data access through the helper app…\n`,
+    );
+    // Launch Services gives the app its own responsibility identity; spawning
+    // its executable directly could attribute protected-file access to Terminal
+    execFileSync(
+      '/usr/bin/open',
+      [
+        '-g',
+        '-n',
+        '-W',
+        '--stdout',
+        report,
+        '--stderr',
+        errors,
+        BUNDLE_PATH,
+        '--args',
+        '--check-access',
+        target,
+      ],
+      { stdio: 'inherit' },
+    );
+    // The helper returns expected permission denials as setup guidance
+    let result: BrowserAccessResult;
+    try {
+      result = JSON.parse(
+        await readFile(report, 'utf8'),
+      ) as BrowserAccessResult;
+    } catch (cause) {
+      // Preserve launch diagnostics when the helper fails before reporting
+      const details = await readFile(errors, 'utf8');
+      throw new Error(
+        `The helper could not complete its permission check: ${details}`,
+        { cause },
+      );
+    }
+    process.stdout.write(`${result.message}\n`);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+}
+
 // Build a native app entry point so macOS can attribute privacy permissions
 async function buildBundle(entry: string): Promise<string> {
   // The stable development bundle, separate from the disposable build output
-  const bundle = resolve(
-    dirname(entry),
-    '../../.local/Chromium Session Transfer Helper.app',
-  );
+  const bundle = BUNDLE_PATH;
   // Remember the installed identity before compilation or signing can replace it
   const previousIdentity = await signingIdentity(bundle);
   // The directory containing the app's native entry point and Node runtime
@@ -136,12 +195,12 @@ async function buildBundle(entry: string): Promise<string> {
   if (previousIdentity !== undefined && previousIdentity !== currentIdentity) {
     resetPermissions();
     process.stdout.write(
-      'The helper signing identity changed. Reset this helper’s privacy permissions. Quit and reopen System Settings, retry a transfer, then grant destination browser access again in Files & Folders.\n',
+      'The helper signing identity changed. Reset this helper’s privacy permissions; installation will request destination access next.\n',
     );
   } else {
     process.stdout.write(
       previousIdentity === undefined
-        ? 'First installation; no existing privacy permissions were reset. Grant destination browser access when requested.\n'
+        ? 'First installation; no existing privacy permissions were reset. Installation will request destination access next.\n'
         : 'The helper signing identity is unchanged; existing privacy permissions were preserved.\n',
     );
   }
@@ -157,14 +216,19 @@ async function install(): Promise<void> {
   const { values, positionals } = parseArgs({
     options: {
       source: { type: 'string', default: DEFAULT_SOURCE },
+      target: { type: 'string', default: DEFAULT_DESTINATION },
       uninstall: { type: 'boolean', default: false },
       'reset-permissions': { type: 'boolean', default: false },
     },
     allowPositionals: true,
   });
-  if (!isBrowserId(values.source) || positionals.length > 1) {
+  if (
+    !isBrowserId(values.source) ||
+    !isBrowserId(values.target) ||
+    positionals.length > 1
+  ) {
     throw new Error(
-      `Usage: pnpm host:install --source <${Object.keys(BROWSERS).join('|')}> [extension-id]`,
+      `Usage: pnpm host:install [--source <${Object.keys(BROWSERS).join('|')}>] [--target <${Object.keys(BROWSERS).join('|')}>] [extension-id]`,
     );
   }
   if (values['reset-permissions']) {
@@ -174,8 +238,9 @@ async function install(): Promise<void> {
     // Reset only this app's grants; do not rebuild it or change its signature
     resetPermissions();
     process.stdout.write(
-      'Reset this helper’s privacy permissions. Quit and reopen System Settings, retry a transfer, then grant destination browser access in Files & Folders. The app bundle was not changed.\n',
+      'Reset this helper’s privacy permissions. The app bundle was not changed; requesting destination access next.\n',
     );
+    await requestBrowserAccess(values.target);
     return;
   }
   // The selected browser's registration metadata
@@ -229,6 +294,7 @@ async function install(): Promise<void> {
   process.stdout.write(
     `Registered the on-demand helper for ${source.name}, extension ${extensionId}\nManifest: ${manifestPath}\nHelper: ${launcher}\nChoose the destination in extension settings; it defaults to ${BROWSERS[DEFAULT_DESTINATION].name}.\nNo browser restart is required. Re-run this command if the project moves or to update the bundled Node runtime.\n`,
   );
+  await requestBrowserAccess(values.target);
 }
 
 // Remove only this helper's registration; a missing file is already uninstalled
