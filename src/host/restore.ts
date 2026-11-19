@@ -20,6 +20,7 @@ import { logError, logStep } from './log.js';
 import { BROWSERS, isBrowserId } from '../shared/browsers.js';
 import { connectBrowser } from './browser.js';
 import { waitForWorkers } from './workers.js';
+import { LOADING_PAGE, LOADING_PAGE_CSP } from './loading-page.js';
 
 // Check whether a cookie's domain scope includes the given hostname
 function matchesCookie(host: string, domain: string): boolean {
@@ -186,10 +187,9 @@ async function preparePage(browser: Browser, origin: string): Promise<Page> {
               contentType: 'text/html',
               headers: {
                 'Cache-Control': 'no-store',
-                'Content-Security-Policy':
-                  "default-src 'none'; frame-ancestors 'none'",
+                'Content-Security-Policy': LOADING_PAGE_CSP,
               },
-              body: '<!doctype html><title>Preparing session transfer</title><p>Restoring stored session…</p>',
+              body: LOADING_PAGE,
             })
           : request.abort()
       ).catch((cause: unknown) =>
