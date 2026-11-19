@@ -265,7 +265,7 @@ export async function importToChrome(
       ) {
         return {
           ok: false,
-          message: `macOS denied the helper access while discovering Chrome. Review node’s Google Chrome access under System Settings → Privacy & Security → Files & Folders. Details: ${describeError(cause)}`,
+          message: `macOS denied the helper access while discovering Chrome. Review Google Chrome access for Chrome Session Transfer Helper (or node, if that is the identity macOS shows) under System Settings → Privacy & Security → Files & Folders. Details: ${describeError(cause)}`,
         };
       }
     }

@@ -21,10 +21,18 @@ The installer registers the local helper in
 macOS deliberately reads Chrome's registration directory; see
 [Brave's startup code](https://github.com/brave/brave-core/blob/master/app/brave_main_delegate.cc).
 The installer removes this project's old registration from Brave's own profile
-directory if present. It creates a launcher in `.local/` that uses
-the absolute path to the Node executable running the installer. Run the command
-again if you move the repository or change Node installations. It does not
+directory if present. It builds `.local/Chrome Session Transfer Helper.app`
+using the installed Apple Command Line Tools. The app contains a small native
+launcher and a copy of the Node executable running the installer; the compiled
+TypeScript and dependencies still run from this checkout. Run the command again
+if you move the repository or want to update its Node runtime. It does not
 launch a browser, create a daemon, or change your Codex configuration.
+
+The development bundle is ad-hoc signed, with Node's original signature retained.
+Rebuilding can require renewed macOS privacy consent. Permission attribution
+through Brave still needs verification; a valid bundle signature alone does not
+prove that Chrome discovery has permission. Public distribution will need a
+self-contained helper, a stable signing identity, and notarization.
 
 Load the extension in Brave:
 
@@ -50,11 +58,13 @@ Chrome refuses a second connection, disconnect MCP before transferring, then
 reconnect it afterward.
 
 Auto-connect reads `DevToolsActivePort` from Chrome's data directory. macOS may
-block that read with a **Data Access Blocked** notification for **node**. Review
-**System Settings → Privacy & Security → Files & Folders → node**, and grant
-Google Chrome data access if you want the helper to discover its connection.
-This is separate from Chrome's remote-debugging permission and applies to the
-Node executable, including other scripts run with it. The helper does not
+block that read with a **Data Access Blocked** notification. The bundle is meant
+to attribute this access to **Chrome Session Transfer Helper** rather than your
+general-purpose Node installation. Review **System Settings → Privacy & Security
+→ Files & Folders** for the actual requesting identity and grant Google Chrome
+access if available. If the request still appears as **node**, record that
+along with the error; don't assume bundling has fixed attribution. This is
+separate from Chrome's remote-debugging permission. The helper does not
 change macOS privacy settings. Connection failures include their underlying
 cause so a permission denial is distinguishable from a transport failure.
 
