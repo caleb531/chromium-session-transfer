@@ -44,6 +44,12 @@ TypeScript and dependencies still run from this checkout. Run the command again
 if you move the repository or want to update its Node runtime. It does not
 launch a browser, create a daemon, or change your Codex configuration.
 
+The installer also registers the signed app with macOS Launch Services, so
+system components can find it by bundle ID when displaying privacy entries.
+This registration does not grant data access. If the helper is missing from
+Files & Folders, rerun the installer, quit and reopen System Settings, and
+retry a transfer to request access under the current app identity.
+
 The development bundle is ad-hoc signed, with Node's original signature retained.
 Rebuilding can require renewed macOS privacy consent. Each destination may need
 its own data-access grant; a valid bundle signature alone does not establish

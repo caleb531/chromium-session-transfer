@@ -39,7 +39,17 @@ async function buildBundle(entry: string): Promise<string> {
   const source = resolve(dirname(entry), '../../src/host/macos/launcher.m');
   execFileSync(
     '/usr/bin/xcrun',
-    ['clang', '-fobjc-arc', '-framework', 'Foundation', source, '-o', launcher],
+    [
+      'clang',
+      '-fobjc-arc',
+      '-framework',
+      'Foundation',
+      '-framework',
+      'CoreServices',
+      source,
+      '-o',
+      launcher,
+    ],
     { stdio: 'inherit' },
   );
   await copyFile(process.execPath, resolve(executables, 'node'));
@@ -72,6 +82,9 @@ async function buildBundle(entry: string): Promise<string> {
     ['--verify', '--deep', '--strict', bundle],
     { stdio: 'inherit' },
   );
+  // Let macOS resolve the helper by bundle ID when displaying privacy entries
+  // A native messaging launch alone does not perform this app registration
+  execFileSync(launcher, ['--register'], { stdio: 'inherit' });
   return launcher;
 }
 

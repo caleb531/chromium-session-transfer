@@ -1,4 +1,6 @@
 #import <Foundation/Foundation.h>
+#import <CoreServices/CoreServices.h>
+#include <string.h>
 #include <unistd.h>
 
 // Start the bundled Node runtime while preserving the native messaging pipes
@@ -6,6 +8,18 @@ int main(int argc, char **argv) {
   @autoreleasepool {
     // The app containing this executable and its dedicated runtime
     NSBundle *bundle = NSBundle.mainBundle;
+    // Register during installation so macOS can find this app by bundle ID
+    // Direct native messaging launches do not register an app with the Finder
+    if (argc == 2 && strcmp(argv[1], "--register") == 0) {
+      // The result of adding or updating this bundle's Launch Services record
+      OSStatus status = LSRegisterURL((__bridge CFURLRef)bundle.bundleURL, true);
+      if (status != noErr) {
+        fprintf(stderr, "Session Transfer Helper: app registration failed (%d)\n",
+            (int)status);
+        return 1;
+      }
+      return 0;
+    }
     // The configuration contains executable paths only; never session data
     NSData *data = [NSData dataWithContentsOfURL:
         [bundle URLForResource:@"launch" withExtension:@"json"]];
