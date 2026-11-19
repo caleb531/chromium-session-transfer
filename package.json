@@ -14,7 +14,7 @@
     "icons:generate": "node scripts/generate-icons.ts",
     "dev": "vite build --watch",
     "build": "vite build && pnpm build:host",
-    "build:host": "tsc -p tsconfig.host.json",
+    "build:host": "tsc -p tsconfig.host.json && cp src/host/loading-page.html dist/host/loading-page.html",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.host.json --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
