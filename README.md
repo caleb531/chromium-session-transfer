@@ -1,12 +1,14 @@
 # Chromium Session Transfer
 
-Transfer selected Brave tabs and their stored website state into an already-open
-Google Chrome profile. Chrome remains available to Chrome DevTools MCP through
-your existing `--autoConnect` configuration.
+Transfer selected tabs and their stored website state between running Chromium
+browsers. The source is whichever browser runs the extension; choose the
+destination in the picker or Settings. The defaults remain Brave → Google Chrome.
 
-The MVP targets macOS, Brave with Chromium 144 or newer, Google Chrome 144 or
-newer, and Node.js 24 or newer. The implementation is TypeScript, with Svelte
-for the extension UI and an on-demand native messaging helper.
+The MVP targets macOS, Chromium 144 or newer, and Node.js 24 or newer. Browser
+definitions currently cover stable Brave and Google Chrome; other browsers need
+verified metadata before being added. Brave → Chrome has been verified with
+NetSuite and ServiceNow. Brave as a destination and Chrome as a source still
+need end-to-end verification. The transfer engine is shared across destinations.
 
 ## Set up
 
@@ -16,12 +18,26 @@ pnpm build
 pnpm host:install
 ```
 
-The installer registers the local helper in
+`host:install` defaults to Brave as the source. To select it explicitly, or to
+register for Chrome as a source:
+
+```sh
+pnpm host:install --source brave
+pnpm host:install --source chrome
+```
+
+The installer registers the helper where the **source** browser looks for native
+hosts. The destination is saved in the extension and can change without
+reinstallation; it is not an installer argument. Both current browser definitions
+use
 `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`. Brave on
 macOS deliberately reads Chrome's registration directory; see
 [Brave's startup code](https://github.com/brave/brave-core/blob/master/app/brave_main_delegate.cc).
-The installer removes this project's old registration from Brave's own profile
-directory if present. It builds `.local/Chromium Session Transfer Helper.app`
+The directory is created if needed even if Chrome is not installed. Since both
+browsers share this registration path and the extension key, one registration
+can serve both; uninstalling it removes the helper registration for both.
+
+The installer builds `.local/Chromium Session Transfer Helper.app`
 using the installed Apple Command Line Tools. The app contains a small native
 launcher and a copy of the Node executable running the installer; the compiled
 TypeScript and dependencies still run from this checkout. Run the command again
@@ -29,52 +45,55 @@ if you move the repository or want to update its Node runtime. It does not
 launch a browser, create a daemon, or change your Codex configuration.
 
 The development bundle is ad-hoc signed, with Node's original signature retained.
-Rebuilding can require renewed macOS privacy consent. Permission attribution
-through Brave still needs verification; a valid bundle signature alone does not
-prove that Chrome discovery has permission. Public distribution will need a
+Rebuilding can require renewed macOS privacy consent. Each destination may need
+its own data-access grant; a valid bundle signature alone does not establish
+permission. Public distribution will need a
 self-contained helper, a stable signing identity, and notarization.
 
-Load the extension in Brave:
+Load the extension in the **source** browser:
 
-1. Open `brave://extensions` and enable **Developer mode**.
+1. Open `brave://extensions` or `chrome://extensions` and enable **Developer mode**.
 2. Choose **Load unpacked** and select this repository's `dist/extension` folder.
 3. Pin **Chromium Session Transfer** to the toolbar.
 
 The checked-in public manifest key keeps the unpacked extension's ID stable, so
 the helper can be registered before you load the extension. No private signing
 key is needed or included. You can override the detected extension ID with
-`pnpm host:install <extension-id>` if needed.
+`pnpm host:install --source brave <extension-id>` if needed.
 
-In Chrome, enable remote debugging at `chrome://inspect/#remote-debugging`.
-Keep Chrome open. When a transfer requests a debugging connection, approve it
-in Chrome. No browser restart, AppleScript, Chrome extension, or traditional
-`--remote-debugging-port` launch is required.
+Keep the destination browser open and enable remote debugging at
+`chrome://inspect/#remote-debugging` or `brave://inspect/#remote-debugging`.
+Settings shows the instructions for the selected destination. Approve its
+connection request if shown. No destination extension is needed. The no-restart
+connection workflow has been verified in Chrome; browser/version support for
+the same debugging setup must be checked before relying on another destination.
 
-The helper uses `puppeteer-core` to discover and connect to the visible stable
-Chrome default profile, using the same connection API as MCP auto-connect. It
-does not download a browser or launch a headless browser. Coexistence with an
-active MCP connection needs verification on your installed Chrome version. If
-Chrome refuses a second connection, disconnect MCP before transferring, then
-reconnect it afterward.
+The helper reads `DevToolsActivePort` from the selected browser's stable data
+root and connects through `puppeteer-core`. It restores into the default browser
+context, not an incognito context. Named/custom data roots are outside this MVP.
+It does not download or launch a browser. If an active MCP connection prevents
+another connection, disconnect MCP before transferring and reconnect afterward.
+Chrome remains available to MCP through your existing `--autoConnect` setup.
 
-Auto-connect reads `DevToolsActivePort` from Chrome's data directory. macOS may
-block that read with a **Data Access Blocked** notification. The bundle is meant
+macOS may block endpoint discovery with a **Data Access Blocked** notification.
+The bundle is meant
 to attribute this access to **Chromium Session Transfer Helper** rather than your
 general-purpose Node installation. Review **System Settings → Privacy & Security
-→ Files & Folders** for the actual requesting identity and grant Google Chrome
+→ Files & Folders** for the actual requesting identity and grant the destination
+browser's
 access if available. If the request still appears as **node**, record that
 along with the error; don't assume bundling has fixed attribution. This is
-separate from Chrome's remote-debugging permission. The helper does not
+separate from the destination's remote-debugging permission. The helper does not
 change macOS privacy settings. Connection failures include their underlying
 cause so a permission denial is distinguishable from a transport failure.
 
 ## Transfer tabs
 
-1. Click **Send to Chrome**, or press **Option+Shift+C** in Brave.
-2. Choose tabs from the picker. Saved domain patterns preselect matching tabs.
-3. Click **Send tabs to Chrome** and grant website access when requested.
-4. Approve the helper's Chrome connection if prompted.
-5. Review the opened pages in Chrome to confirm that the websites accepted the
+1. Click **Transfer sessions**, or press **Option+Shift+C** in the source browser.
+2. Choose the destination and tabs. Saved domain patterns preselect matching tabs.
+3. Click the Send button and grant website access when requested.
+4. Approve the destination's debugging connection if prompted.
+5. Review the destination pages to confirm that the websites accepted the
    transferred sessions.
 
 The picker updates automatically as tabs open, close, navigate, or move. Manual
@@ -83,21 +102,24 @@ checks or unchecks the current filtered list, and Shift-click applies a checkbox
 state to the displayed range from the last clicked tab. Updates are deferred
 while a transfer is running and applied when it finishes.
 
-Close existing Chrome tabs for the selected sites before transferring. The
-helper also refuses to replace cookies used by other open Chrome tabs sharing
+Close existing destination tabs for the selected sites before transferring. The
+helper also refuses to replace cookies used by other open destination tabs sharing
 their domain scope, or to restore origins with active service/shared workers.
 This avoids overwriting storage while those pages or workers are using it.
+Selecting the same browser/profile that owns the source tabs is therefore
+rejected by the same open-tab guard; the helper never closes those source tabs
+to make the check pass.
 
 Selected origins are saved as scheme-specific host patterns. The settings page
 supports adding, editing, and deleting patterns such as
 `https://*.example.com/*`, `*://example.com/*`, and `http://localhost/*`.
-This MVP supports HTTP(S) host patterns with a `/*` path; Chrome host
+This MVP supports HTTP(S) host patterns with a `/*` path; Chromium host
 permissions cover all ports. Deleting a saved pattern removes preselection,
-while granted permissions remain manageable in Brave's extension details.
+while granted permissions remain manageable in the source's extension details.
 
-**Transfer Behavior** controls whether Brave tabs stay open or close after the
+**Transfer Behavior** controls whether source tabs stay open or close after the
 entire batch has restored storage and reached DOMContentLoaded. The default
-keeps them open. A failed batch never intentionally closes Brave tabs. A source
+keeps them open. A failed batch never intentionally closes source tabs. A source
 tab that has navigated since capture is also left open. Successful navigation
 does not establish successful authentication; use the keep-open setting until
 you have verified your sites.
@@ -160,7 +182,7 @@ the program cannot promise rollback after a browser/process crash.
 
 After website navigation begins, the server and application may change state.
 If navigation fails, the helper keeps the destination tabs for review, keeps
-the Brave tabs, and reports that no rollback was attempted.
+the source tabs, and reports that no rollback was attempted.
 
 ### IndexedDB support
 
@@ -190,7 +212,7 @@ Other limits:
 - Cross-origin frames and automatic SSO dependency discovery are outside scope.
   A provider's cookies or storage are not inferred from an application tab.
 - Private and discarded/unloaded tabs are not supported; open unloaded tabs in
-  Brave before retrying.
+  the source browser before retrying.
 - The in-memory batch must fit Chromium's 64 MiB native messaging request limit.
 - Websites can reject copied sessions, expire them, or bind them to credentials
   beyond the transferred stores. Authentication needs verification per site.
@@ -200,20 +222,20 @@ Other limits:
 The transfer path uses extension memory, native messaging pipes, Node memory,
 and a local CDP connection. There are no credential export files, clipboard
 operations, HTTP listeners, cloud services, or persistent queues. Extension
-settings contain only domain patterns, transfer behavior, and theme. The native host
+settings contain only the destination, domain patterns, transfer behavior, and theme. The native host
 returns status only, suppresses Puppeteer's protocol logger, and disconnects
-without closing Chrome when finished.
+without closing the destination when finished.
 
 This does not mean credentials can never touch disk: both browser profiles can
 persist website storage, and operating-system swap or diagnostics may contain
 process memory. JavaScript cannot guarantee immediate erasure of every copied
-string. Chrome applies its own normal at-rest storage protection after import;
+string. The destination applies its normal at-rest storage protection after import;
 localStorage and IndexedDB should not be assumed to have cookie encryption.
 
 ## Development
 
 ```sh
-pnpm dev             # Rebuild the extension on changes; reload it in Brave
+pnpm dev             # Rebuild the extension on changes; reload it in the source
 pnpm build:host      # Recompile the native helper after helper/shared edits
 pnpm check           # Check Svelte and TypeScript
 pnpm lint            # Run ESLint with Svelte and Prettier integration
@@ -228,17 +250,18 @@ Stdout is reserved for native-message framing. On-screen failures include the
 underlying cause. Neither logger dumps transfer payloads or CDP traffic, and
 the tool creates no log files.
 
-There are no automated tests in this iteration. No browser automation has been
-used to validate real sessions yet. Build checks establish compilation only;
-the first full transfer must verify Chrome/MCP coexistence and your actual
-NetSuite and ServiceNow workflows.
+There is no automated test suite in this iteration. Disposable Chrome databases
+have verified IndexedDB counter capture, restoration, and rollback. Real Brave →
+Chrome transfers have been accepted by NetSuite and ServiceNow. A new source or
+destination still needs end-to-end verification; build checks alone do not
+establish session acceptance or debugging compatibility.
 
 ```text
 src/
   extension/         Background worker, settings, tab selection, and capture
     ui/              Svelte picker/options pages and the two-palette CSS theme
-  host/              Native message framing, Chrome restoration, and installer
-  shared/            Transfer types, cookie scope rules, and storage serializer
+  host/              Native framing, browser discovery, restoration, and installer
+  shared/            Browser registry, transfer types, cookie scope, and serializer
 ```
 
 The extension is built into `dist/extension`; the Node helper is compiled into
@@ -246,9 +269,9 @@ The extension is built into `dist/extension`; the Node helper is compiled into
 browser-launch dependency tree is explicitly denied: Node already supplies
 `spawnSync`, and automatic browser launching is disabled.
 
-To remove the native registration, run `pnpm host:uninstall`. Remove the
-extension separately in Brave. Neither action deletes website data already
-imported into Chrome.
+To remove the registration, run `pnpm host:uninstall --source brave` (or
+`--source chrome`). Brave remains the default when omitted. Remove the extension
+separately in its source browser. Neither action deletes imported website data.
 
 ## License
 

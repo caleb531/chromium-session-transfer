@@ -1,5 +1,5 @@
 import { endianness } from 'node:os';
-import { importToChrome } from './chrome.js';
+import { importToBrowser } from './restore.js';
 import type { HostResult, TransferPayload } from '../shared/protocol.js';
 import { describeError } from '../shared/errors.js';
 import { logError, logStep } from './log.js';
@@ -43,13 +43,13 @@ function reply(result: HostResult): void {
   process.stdout.write(Buffer.concat([header, body]));
 }
 
-// Handle exactly one transfer and exit after the Chrome connection is detached
+// Handle exactly one transfer and exit after the destination connection is detached
 async function main(): Promise<void> {
   logStep('Native helper started; waiting for the extension request');
   // The request is kept only in process memory until this helper exits
   let result: HostResult;
   try {
-    result = await importToChrome(await readMessage());
+    result = await importToBrowser(await readMessage());
   } catch (cause) {
     logError('Native helper request failed', cause);
     result = {

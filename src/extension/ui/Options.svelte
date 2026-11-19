@@ -7,6 +7,8 @@
     writeSettings,
   } from '../settings';
   import type { Settings } from '../settings';
+  import { BROWSERS } from '../../shared/browsers';
+  import type { BrowserId } from '../../shared/browsers';
 
   // The preferences edited in this options page
   let settings = $state<Settings>({ ...DEFAULT_SETTINGS, patterns: [] });
@@ -20,6 +22,8 @@
   let error = $state(false);
   // Whether the saved preferences have finished loading
   let ready = $state(false);
+  // The saved browser whose name and debugging instructions appear below
+  const destination = $derived(BROWSERS[settings.destination]);
   // The extension ID required to register the native helper
   const extensionId = chrome.runtime.id;
 
@@ -47,13 +51,13 @@
     }
   }
 
-  // Add or update one normalized Chrome host match pattern
+  // Add or update one normalized Chromium host match pattern
   async function submit(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     // The normalized host permission pattern entered by the user
     const value = pattern.trim().toLowerCase();
     if (!isPattern(value)) {
-      message = 'Use a Chrome host pattern, e.g. https://*.example.com/*';
+      message = 'Use a Chromium host pattern, e.g. https://*.example.com/*';
       error = true;
       return;
     }
@@ -77,6 +81,23 @@
 <section class="panel">
   <h2>Transfer Behavior</h2>
   <label class="field">
+    Destination browser
+    <select
+      disabled={!ready}
+      value={settings.destination}
+      onchange={(event) =>
+        save({ destination: event.currentTarget.value as BrowserId })}
+    >
+      {#each Object.entries(BROWSERS) as [id, browser] (id)}
+        <option value={id}>{browser.name}</option>
+      {/each}
+    </select>
+  </label>
+  <p class="muted">
+    The source is the browser where you open this extension. The destination
+    must be running with remote debugging enabled.
+  </p>
+  <label class="field">
     After a successful transfer
     <select
       disabled={!ready}
@@ -86,14 +107,14 @@
           behavior: event.currentTarget.value as Settings['behavior'],
         })}
     >
-      <option value="keep">Keep the original Brave tabs open</option>
-      <option value="close">Close the original Brave tabs</option>
+      <option value="keep">Keep the original tabs open</option>
+      <option value="close">Close the original tabs</option>
     </select>
   </label>
   <p class="muted">
-    Brave tabs stay open if any part of the batch fails. Closing follows storage
-    restoration and navigation; it does not prove the website accepted the
-    login.
+    Source tabs stay open if any part of the batch fails. Closing follows
+    storage restoration and navigation; it does not prove the website accepted
+    the login.
   </p>
 </section>
 
@@ -101,7 +122,8 @@
   <h2>Saved domains</h2>
   <p class="muted">
     Matching tabs are preselected in the picker. Selecting a new website saves
-    its host after you grant access. Chrome host permissions apply to all ports.
+    its host after you grant access. Chromium host permissions apply to all
+    ports.
   </p>
   <form class="row wrap" onsubmit={submit}>
     <label class="field" style="flex: 1; min-width: 240px">
@@ -157,17 +179,27 @@
   </div>
   <p class="muted">
     Deleting a pattern stops preselection; it does not revoke browser
-    permissions. Manage granted access in Brave’s extension details.
+    permissions. Manage granted access in this browser’s extension details.
   </p>
 </section>
 
 <section class="panel">
   <h2>Local helper</h2>
-  <p>After building the project, register this extension with the helper:</p>
-  <code>pnpm host:install {extensionId}</code>
+  <p>
+    After building the project, register the helper for your source browser:
+  </p>
+  {#each Object.entries(BROWSERS) as [id, browser] (id)}
+    <p>
+      <strong>{browser.name}</strong><br /><code>
+        pnpm host:install --source {id}
+        {extensionId}
+      </code>
+    </p>
+  {/each}
   <p class="muted">
-    Keep Chrome open and enable remote debugging at <code>
-      chrome://inspect/#remote-debugging
+    Keep {destination.name} open and enable remote debugging at
+    <code>
+      {destination.debuggingUrl}
     </code>. The helper runs only during transfers. No authentication data is
     saved in extension settings.
   </p>

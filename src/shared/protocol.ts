@@ -1,8 +1,10 @@
-// The installed native host used by the Brave extension
+import type { BrowserId } from './browsers.js';
+
+// The installed native host used by the source browser's extension
 export const HOST_NAME = 'com.calebevans.chromium_session_transfer';
 
 // The format version shared by the extension and native helper
-export const FORMAT_VERSION = 2;
+export const FORMAT_VERSION = 3;
 
 // A JSON-safe node in a graph of structured IndexedDB values
 export interface ValueNode {
@@ -96,7 +98,7 @@ export type StorageResult =
 
 // A tab and its separately captured sessionStorage
 export interface TransferTab {
-  // The Brave tab ID used only to close a successfully transferred tab
+  // The source tab ID used only to close a successfully transferred tab
   sourceId: number;
   // The original page URL to open after storage restoration
   url: string;
@@ -112,6 +114,8 @@ export interface TransferTab {
 export interface TransferPayload {
   // The wire format expected by this build
   version: typeof FORMAT_VERSION;
+  // The destination browser whose running default context receives the batch
+  destination: BrowserId;
   // The top-level tabs explicitly selected by the user
   tabs: TransferTab[];
   // The shared storage captured once per selected origin

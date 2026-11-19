@@ -11,6 +11,8 @@
   import { transferTabs } from '../transfer';
   import { cookiePermission } from '../../shared/sites';
   import { describeError } from '../../shared/errors';
+  import { BROWSERS } from '../../shared/browsers';
+  import type { BrowserId } from '../../shared/browsers';
 
   // The open HTTP(S) tabs eligible for a transfer
   let tabs = $state<chrome.tabs.Tab[]>([]);
@@ -18,6 +20,8 @@
   let selected = $state<number[]>([]);
   // The preferences used to preselect tabs and choose closing behavior
   let settings = $state<Settings>({ ...DEFAULT_SETTINGS, patterns: [] });
+  // The destination shown in action labels and storage replacement notices
+  const destination = $derived(BROWSERS[settings.destination]);
   // The tab title or URL filter entered by the user
   let search = $state('');
   // Whether a transfer is currently reading or restoring storage
@@ -185,6 +189,9 @@
     if (busy || !ready || !selected.length) return;
     // The snapshot of the user's selection at the start of this operation
     const chosen = tabs.filter((tab) => selected.includes(tab.id!));
+    // Lock the displayed destination so concurrent settings edits cannot reroute
+    // authenticated data after the user clicks Send
+    const target = settings.destination;
     // The host permission patterns needed for the selected origins
     const patterns = [...new Set(chosen.map((tab) => originPattern(tab.url!)))];
     busy = true;
@@ -217,11 +224,12 @@
       );
       settings = {
         ...latest,
+        destination: target,
         patterns: [...new Set([...latest.patterns, ...additions])],
       };
       await writeSettings({ patterns: settings.patterns });
       // The helper's credential-free completion response
-      const result = await transferTabs(chosen, (progress) => {
+      const result = await transferTabs(chosen, target, (progress) => {
         console.info('[chromium-session-transfer]', progress);
         message = progress;
       });
@@ -249,7 +257,7 @@
             '[chromium-session-transfer] Could not close source tabs',
             cause,
           );
-          message += ' Some Brave tabs could not be closed.';
+          message += ' Some source tabs could not be closed.';
         }
       }
     } catch (cause) {
@@ -269,7 +277,7 @@
   <div class="row between wrap">
     <div>
       <h2>Your tabs, your call.</h2>
-      <p class="muted">Choose the pages to continue in Chrome.</p>
+      <p class="muted">Choose the pages to continue in {destination.name}.</p>
     </div>
     <button
       type="button"
@@ -279,6 +287,28 @@
       Settings
     </button>
   </div>
+  <label class="field">
+    Destination browser
+    <select
+      disabled={busy || !ready}
+      value={settings.destination}
+      onchange={async (event) => {
+        // Show and use this choice immediately while its preference is saved
+        const target = event.currentTarget.value as BrowserId;
+        settings = { ...settings, destination: target };
+        try {
+          await writeSettings({ destination: target });
+        } catch (cause) {
+          message = `Could not save the destination: ${describeError(cause)}`;
+          error = true;
+        }
+      }}
+    >
+      {#each Object.entries(BROWSERS) as [id, browser] (id)}
+        <option value={id}>{browser.name}</option>
+      {/each}
+    </select>
+  </label>
   <label class="field">
     Find a tab
     <input
@@ -339,8 +369,8 @@
   <div class="row between wrap" style="margin-top: 20px">
     <small>
       {settings.behavior === 'close'
-        ? 'Close Brave tabs after success'
-        : 'Keep Brave tabs after success'}
+        ? 'Close source tabs after success'
+        : 'Keep source tabs after success'}
     </small>
     <button
       type="submit"
@@ -349,7 +379,7 @@
     >
       {busy
         ? 'Transferring…'
-        : `Send ${selected.length || ''} ${selected.length === 1 ? 'tab' : 'tabs'} to Chrome`}
+        : `Send ${selected.length || ''} ${selected.length === 1 ? 'tab' : 'tabs'} to ${destination.name}`}
     </button>
   </div>
 </form>
@@ -357,12 +387,11 @@
 <p class="notice">
   Cookies, localStorage, IndexedDB, and each tab’s sessionStorage will be copied
   for the selected top-level origins. This replaces stored data for those
-  origins in Chrome. Close existing Chrome tabs for those origins first. SSO
-  discovery and other embedded origins are outside this MVP.
+  origins in {destination.name}. Close existing {destination.name} tabs for those
+  origins first. SSO discovery and other embedded origins are outside this MVP.
 </p>
 <p class="muted">
-  Brave may request parent-domain access to include shared cookies (for example, <code>
-    *.netsuite.com
-  </code>). Only cookies applicable to the selected hosts and storage for the
-  selected origins are exported.
+  Your browser may request parent-domain access to include shared cookies (for
+  example, <code> *.netsuite.com </code>). Only cookies applicable to the
+  selected hosts and storage for the selected origins are exported.
 </p>

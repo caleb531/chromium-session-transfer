@@ -12,6 +12,13 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HOST_NAME } from '../shared/protocol.js';
 import { createHash } from 'node:crypto';
+import { parseArgs } from 'node:util';
+import {
+  BROWSERS,
+  DEFAULT_DESTINATION,
+  DEFAULT_SOURCE,
+  isBrowserId,
+} from '../shared/browsers.js';
 
 // Build a native app entry point so macOS can attribute privacy permissions
 async function buildBundle(entry: string): Promise<string> {
@@ -26,7 +33,7 @@ async function buildBundle(entry: string): Promise<string> {
   const resources = resolve(bundle, 'Contents/Resources');
   await mkdir(executables, { recursive: true });
   await mkdir(resources, { recursive: true });
-  // The Mach-O executable registered with Brave
+  // The Mach-O executable registered with the source browser
   const launcher = resolve(executables, 'session-transfer-helper');
   // The native launcher source remains in the developer's checkout
   const source = resolve(dirname(entry), '../../../src/host/macos/launcher.m');
@@ -68,37 +75,47 @@ async function buildBundle(entry: string): Promise<string> {
   return launcher;
 }
 
-// Register an on-demand host for the exact Brave extension ID supplied by the
-// user
+// Register an on-demand host in the selected source browser's lookup directory
 async function install(): Promise<void> {
   if (process.platform !== 'darwin') {
     throw new Error('The MVP installer currently supports macOS only');
   }
-  // Brave uses Chrome's native messaging directory on macOS
-  // See PreSandboxStartup in brave-core/app/brave_main_delegate.cc
+  // The source defaults to Brave; the extension ID remains an optional argument
+  const { values, positionals } = parseArgs({
+    options: {
+      source: { type: 'string', default: DEFAULT_SOURCE },
+      uninstall: { type: 'boolean', default: false },
+    },
+    allowPositionals: true,
+  });
+  if (!isBrowserId(values.source) || positionals.length > 1) {
+    throw new Error(
+      `Usage: pnpm host:install --source <${Object.keys(BROWSERS).join('|')}> [extension-id]`,
+    );
+  }
+  // The selected browser's registration metadata
+  const source = BROWSERS[values.source];
+  // The directory searched by the source browser for native messaging hosts
   const directory = resolve(
     homedir(),
-    'Library/Application Support/Google/Chrome/NativeMessagingHosts',
+    'Library/Application Support',
+    source.nativeHostDirectory,
+    'NativeMessagingHosts',
   );
   // The manifest path belonging exclusively to this project
   const manifestPath = resolve(directory, `${HOST_NAME}.json`);
-  // The unused registration created by the original installer
-  const legacyManifestPath = resolve(
-    homedir(),
-    'Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts',
-    `${HOST_NAME}.json`,
-  );
-  if (process.argv.includes('--uninstall')) {
+  if (values.uninstall) {
     await removeRegistration(manifestPath);
-    await removeRegistration(legacyManifestPath);
-    process.stdout.write('Removed the Brave native helper registration\n');
+    process.stdout.write(
+      `Removed the native helper registration for ${source.name}\n`,
+    );
     return;
   }
-  // The extension ID whose native messages Brave is allowed to deliver
-  const extensionId = process.argv[2] ?? (await builtExtensionId());
+  // The extension ID whose native messages the source browser may deliver
+  const extensionId = positionals[0] ?? (await builtExtensionId());
   if (!extensionId || !/^[a-p]{32}$/.test(extensionId)) {
     throw new Error(
-      'Usage: pnpm host:install <extension-id-from-brave://extensions>',
+      'Supply the extension ID shown in the source browser’s extension details',
     );
   }
   // The compiled helper entry point, kept at a stable path after builds
@@ -113,7 +130,7 @@ async function install(): Promise<void> {
       {
         name: HOST_NAME,
         description:
-          'Transfer selected Brave sessions to an existing Chrome profile',
+          'Transfer selected sessions between running Chromium browsers',
         path: launcher,
         type: 'stdio',
         allowed_origins: [`chrome-extension://${extensionId}/`],
@@ -124,9 +141,8 @@ async function install(): Promise<void> {
     { mode: 0o600 },
   );
   await chmod(manifestPath, 0o600);
-  await removeRegistration(legacyManifestPath);
   process.stdout.write(
-    `Registered the on-demand helper for extension ${extensionId}\nManifest: ${manifestPath}\nHelper: ${launcher}\nNo browser restart is required. This development bundle is ad-hoc signed; rebuilding it may require renewed privacy consent. Re-run this command if the project moves or to update the bundled Node runtime.\n`,
+    `Registered the on-demand helper for ${source.name}, extension ${extensionId}\nManifest: ${manifestPath}\nHelper: ${launcher}\nChoose the destination in extension settings; it defaults to ${BROWSERS[DEFAULT_DESTINATION].name}.\nNo browser restart is required. This development bundle is ad-hoc signed; rebuilding it may require renewed privacy consent. Re-run this command if the project moves or to update the bundled Node runtime.\n`,
   );
 }
 

@@ -7,10 +7,13 @@ import type {
 import { websiteStorage } from '../shared/storage.js';
 import { cookieSite, selectedPartition } from '../shared/sites.js';
 import { describeError } from '../shared/errors.js';
+import { BROWSERS } from '../shared/browsers.js';
+import type { BrowserId } from '../shared/browsers.js';
 
 // Capture every supported store before sending a single payload to the helper
 export async function transferTabs(
   tabs: chrome.tabs.Tab[],
+  destination: BrowserId,
   report: (message: string) => void,
 ): Promise<HostResult> {
   if (!tabs.length) throw new Error('Choose at least one tab');
@@ -18,7 +21,7 @@ export async function transferTabs(
   const origins = new Map<string, StorageSnapshot>();
   // The selected pages and their independently captured sessionStorage
   const transferred: TransferPayload['tabs'] = [];
-  // The cookie store shared by all selected non-private Brave tabs
+  // The cookie store shared by all selected non-private source tabs
   let storeId: string | undefined;
   // The source store membership used to choose the correct browser cookie store
   const stores = await chrome.cookies.getAllCookieStores();
@@ -31,7 +34,9 @@ export async function transferTabs(
       );
     }
     if (tab.discarded) {
-      throw new Error('A selected tab is unloaded; open it in Brave and retry');
+      throw new Error(
+        'A selected tab is unloaded; open it in the source browser and retry',
+      );
     }
     // The cookie store that owns this selected tab
     const store = stores.find((entry) => entry.tabIds.includes(tab.id!));
@@ -92,6 +97,7 @@ export async function transferTabs(
   // The complete batch kept only in memory until the native host exits
   const payload: TransferPayload = {
     version: FORMAT_VERSION,
+    destination,
     tabs: transferred,
     origins: [...origins.values()],
     cookies,
@@ -110,7 +116,9 @@ export async function transferTabs(
       throw new Error('A selected tab navigated during capture; retry');
     }
   }
-  report('Waiting for Chrome; approve its connection request if shown…');
+  report(
+    `Waiting for ${BROWSERS[destination].name}; approve its connection request if shown…`,
+  );
   try {
     return (await chrome.runtime.sendNativeMessage(
       HOST_NAME,
