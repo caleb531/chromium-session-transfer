@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import {
     DEFAULT_SETTINGS,
     matchesPattern,
@@ -32,6 +32,8 @@
   let message = $state('');
   // Whether the message describes a failed operation
   let error = $state(false);
+  // The rendered status message to reveal and focus after a transfer error
+  let statusElement = $state<HTMLParagraphElement>();
   // Whether the most recent batch completed successfully
   let complete = $state(false);
   // The last clicked tab used as the anchor for a visible selection range
@@ -183,6 +185,37 @@
     anchor = id;
   }
 
+  // Bring the failed transfer back into view without hiding its original error
+  async function revealTransferError(): Promise<void> {
+    try {
+      // The picker may have moved to another window while the helper was running
+      const picker = await chrome.tabs.getCurrent();
+      if (picker?.id === undefined)
+        throw new Error('Could not identify the picker tab');
+      if (busy || !error) return;
+      await chrome.tabs.update(picker.id, { active: true });
+      // Restore only minimized windows; preserve other window states
+      const pickerWindow = await chrome.windows.get(picker.windowId);
+      if (busy || !error) return;
+      await chrome.windows.update(picker.windowId, {
+        ...(pickerWindow.state === 'minimized'
+          ? { state: 'normal' as const }
+          : {}),
+        focused: true,
+      });
+    } catch (cause) {
+      console.error(
+        '[chromium-session-transfer] Could not bring the picker forward',
+        cause,
+      );
+    }
+    // Wait for Svelte to render the error before moving focus and scrolling
+    await tick();
+    if (busy || !error) return;
+    statusElement?.focus({ preventScroll: true });
+    statusElement?.scrollIntoView({ block: 'center' });
+  }
+
   // Handle native form submission, then request access and send the batch
   async function send(event: SubmitEvent): Promise<void> {
     event.preventDefault();
@@ -287,6 +320,7 @@
         error = true;
       }
     }
+    if (!busy && error) await revealTransferError();
   }
 </script>
 
@@ -376,8 +410,10 @@
       </p>{/each}
   </div>
   {#if message}<p
+      bind:this={statusElement}
       role="status"
       aria-live={error ? 'assertive' : 'polite'}
+      tabindex="-1"
       class={error ? 'error' : complete ? 'success' : 'notice'}
     >
       {message}
