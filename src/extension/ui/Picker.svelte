@@ -309,6 +309,16 @@
         {ready ? 'No matching tabs.' : 'Reading open tabs…'}
       </p>{/each}
   </div>
+  {#if message}<p
+      role="status"
+      aria-live={error ? 'assertive' : 'polite'}
+      class={error ? 'error' : complete ? 'success' : 'notice'}
+    >
+      {message}
+    </p>{/if}
+  {#if busy}<p class="muted">
+      Keep this picker open until the transfer finishes.
+    </p>{/if}
   <div class="row between wrap" style="margin-top: 20px">
     <small>
       {settings.behavior === 'close'
@@ -339,13 +349,3 @@
   </code>). Only cookies applicable to the selected hosts and storage for the
   selected origins are exported.
 </p>
-{#if message}<p
-    role="status"
-    aria-live="polite"
-    class={error ? 'error' : complete ? 'success' : 'notice'}
-  >
-    {message}
-  </p>{/if}
-{#if busy}<p class="muted">
-    Keep this picker open until the transfer finishes.
-  </p>{/if}

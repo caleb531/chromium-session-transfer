@@ -106,6 +106,12 @@ domain and subdomains, using the Public Suffix List (including private suffixes)
 instead of guessing from the last two hostname labels. This can produce a
 broader permission prompt than the selected tab's hostname.
 
+The optional manifest declaration uses `*://*/*` to contain the wildcard-scheme
+requests as single patterns. Chromium checks containment against individual
+manifest patterns, so separate HTTP and HTTPS declarations do not contain a
+single `*://` request even though they cover the same schemes. Actual runtime
+requests remain restricted to the selected sites' registrable domains.
+
 The export is still filtered to cookies applicable to the selected hosts and
 their top-level cookie partitions. It does not export sibling sites' Web
 Storage or IndexedDB. Cookie priority and other metadata not exposed by the

@@ -5,7 +5,7 @@
   "description": "Send selected Brave tabs and their stored sessions to Chrome",
   "minimum_chrome_version": "144",
   "permissions": ["tabs", "cookies", "scripting", "storage", "nativeMessaging"],
-  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "optional_host_permissions": ["*://*/*"],
   "background": {
     "service_worker": "src/extension/background.ts",
     "type": "module"
