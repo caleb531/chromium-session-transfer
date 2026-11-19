@@ -51,10 +51,35 @@ Files & Folders, rerun the installer, quit and reopen System Settings, and
 retry a transfer to request access under the current app identity.
 
 The development bundle is ad-hoc signed, with Node's original signature retained.
-Rebuilding can require renewed macOS privacy consent. Each destination may need
-its own data-access grant; a valid bundle signature alone does not establish
-permission. Public distribution will need a
+The installer compares signing identities before and after rebuilding. If an
+existing helper's identity changed, it automatically resets only this helper's
+privacy approvals and tells you to grant destination access again. If the
+identity is unchanged or this is the first installation, no approvals are reset.
+Build, signature verification, or app registration failures do not trigger a
+reset. Each destination may need its own data-access grant; a valid signature
+alone does not establish permission. Public distribution will need a
 self-contained helper, a stable signing identity, and notarization.
+
+Ordinary `pnpm build` and `pnpm build:host` commands update code outside the
+bundle; they do not rebuild or sign the app. Only `pnpm host:install` rebuilds
+the bundle, copies the current Node runtime, and signs it. Use it after changing
+the native launcher or bundle metadata, upgrading the bundled Node runtime, or
+moving the checkout. Extension and TypeScript transfer changes normally need
+only a build (and an extension reload when its code changes).
+
+For manual recovery from a stale privacy grant, run:
+
+```sh
+pnpm host:reset-permissions
+```
+
+This resets only the helper's macOS privacy approvals, including any destination
+browser grants. It does not rebuild the app, grant access, or reset other apps.
+Quit and reopen System Settings to refresh its permission list, retry a transfer,
+then enable the destination in Files & Folders again. The installer prints this
+reminder after either an automatic or manual reset; it does not quit System
+Settings for you. This is an explicit recovery command; normal installation handles identity changes
+automatically. A reset never grants access on your behalf.
 
 Load the extension in the **source** browser:
 

@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "host:install": "node dist/host/install.js",
+    "host:reset-permissions": "node dist/host/install.js --reset-permissions",
     "host:uninstall": "node dist/host/install.js --uninstall"
   },
   "dependencies": {

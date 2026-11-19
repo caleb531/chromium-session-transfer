@@ -3,6 +3,7 @@ import {
   copyFile,
   mkdir,
   readFile,
+  stat,
   unlink,
   writeFile,
 } from 'node:fs/promises';
@@ -20,6 +21,36 @@ import {
   isBrowserId,
 } from '../shared/browsers.js';
 
+// The app identity used by both the bundle and macOS privacy permission resets
+const BUNDLE_ID = 'com.calebevans.chromium-session-transfer.helper';
+
+// Read the identity macOS uses to recognize updates; no bundle means first install
+async function signingIdentity(bundle: string): Promise<string | undefined> {
+  try {
+    await stat(bundle);
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw cause;
+  }
+  // Ad-hoc requirements contain a code hash; certificate identities can remain
+  // stable across builds, so compare requirements rather than executable bytes
+  const requirement = execFileSync(
+    '/usr/bin/codesign',
+    ['--display', '--requirements', '-', bundle],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+  ).trim();
+  if (!requirement)
+    throw new Error('Could not read the helper signing identity');
+  return requirement;
+}
+
+// Remove only this helper's stale grants without rebuilding its signed bundle
+function resetPermissions(): void {
+  execFileSync('/usr/bin/tccutil', ['reset', 'All', BUNDLE_ID], {
+    stdio: 'inherit',
+  });
+}
+
 // Build a native app entry point so macOS can attribute privacy permissions
 async function buildBundle(entry: string): Promise<string> {
   // The stable development bundle, separate from the disposable build output
@@ -27,6 +58,8 @@ async function buildBundle(entry: string): Promise<string> {
     dirname(entry),
     '../../.local/Chromium Session Transfer Helper.app',
   );
+  // Remember the installed identity before compilation or signing can replace it
+  const previousIdentity = await signingIdentity(bundle);
   // The directory containing the app's native entry point and Node runtime
   const executables = resolve(bundle, 'Contents/MacOS');
   // The directory containing launch paths without any authenticated data
@@ -63,7 +96,7 @@ async function buildBundle(entry: string): Promise<string> {
     `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-<key>CFBundleIdentifier</key><string>com.calebevans.chromium-session-transfer.helper</string>
+<key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
 <key>CFBundleExecutable</key><string>session-transfer-helper</string>
 <key>CFBundleName</key><string>Chromium Session Transfer Helper</string>
 <key>CFBundlePackageType</key><string>APPL</string>
@@ -85,6 +118,22 @@ async function buildBundle(entry: string): Promise<string> {
   // Let macOS resolve the helper by bundle ID when displaying privacy entries
   // A native messaging launch alone does not perform this app registration
   execFileSync(launcher, ['--register'], { stdio: 'inherit' });
+  // Reset only after verification and app registration; a failed build must not
+  // erase grants, and Launch Services must know the identity being reset
+  const currentIdentity = await signingIdentity(bundle);
+  if (!currentIdentity) throw new Error('The rebuilt helper bundle is missing');
+  if (previousIdentity !== undefined && previousIdentity !== currentIdentity) {
+    resetPermissions();
+    process.stdout.write(
+      'The helper signing identity changed. Reset this helper’s privacy permissions. Quit and reopen System Settings, retry a transfer, then grant destination browser access again in Files & Folders.\n',
+    );
+  } else {
+    process.stdout.write(
+      previousIdentity === undefined
+        ? 'First installation; no existing privacy permissions were reset. Grant destination browser access when requested.\n'
+        : 'The helper signing identity is unchanged; existing privacy permissions were preserved.\n',
+    );
+  }
   return launcher;
 }
 
@@ -98,6 +147,7 @@ async function install(): Promise<void> {
     options: {
       source: { type: 'string', default: DEFAULT_SOURCE },
       uninstall: { type: 'boolean', default: false },
+      'reset-permissions': { type: 'boolean', default: false },
     },
     allowPositionals: true,
   });
@@ -105,6 +155,17 @@ async function install(): Promise<void> {
     throw new Error(
       `Usage: pnpm host:install --source <${Object.keys(BROWSERS).join('|')}> [extension-id]`,
     );
+  }
+  if (values['reset-permissions']) {
+    if (values.uninstall) {
+      throw new Error('Choose either uninstall or reset-permissions');
+    }
+    // Reset only this app's grants; do not rebuild it or change its signature
+    resetPermissions();
+    process.stdout.write(
+      'Reset this helper’s privacy permissions. Quit and reopen System Settings, retry a transfer, then grant destination browser access in Files & Folders. The app bundle was not changed.\n',
+    );
+    return;
   }
   // The selected browser's registration metadata
   const source = BROWSERS[values.source];
@@ -155,7 +216,7 @@ async function install(): Promise<void> {
   );
   await chmod(manifestPath, 0o600);
   process.stdout.write(
-    `Registered the on-demand helper for ${source.name}, extension ${extensionId}\nManifest: ${manifestPath}\nHelper: ${launcher}\nChoose the destination in extension settings; it defaults to ${BROWSERS[DEFAULT_DESTINATION].name}.\nNo browser restart is required. This development bundle is ad-hoc signed; rebuilding it may require renewed privacy consent. Re-run this command if the project moves or to update the bundled Node runtime.\n`,
+    `Registered the on-demand helper for ${source.name}, extension ${extensionId}\nManifest: ${manifestPath}\nHelper: ${launcher}\nChoose the destination in extension settings; it defaults to ${BROWSERS[DEFAULT_DESTINATION].name}.\nNo browser restart is required. Re-run this command if the project moves or to update the bundled Node runtime.\n`,
   );
 }
 
