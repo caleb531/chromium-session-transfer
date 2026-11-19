@@ -113,7 +113,7 @@
         ...latest,
         patterns: [...new Set([...latest.patterns, ...additions])],
       };
-      await writeSettings(settings);
+      await writeSettings({ patterns: settings.patterns });
       // The helper's credential-free completion response
       const result = await transferTabs(chosen, (progress) => {
         message = progress;

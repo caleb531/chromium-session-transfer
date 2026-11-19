@@ -73,6 +73,10 @@ tab that has navigated since capture is also left open. Successful navigation
 does not establish successful authentication; use the keep-open setting until
 you have verified your sites.
 
+The **Theme** selector on both extension pages offers **System** (the default),
+**Dark**, and **Light**. The choice is saved locally and updates other open
+extension pages. System mode follows operating-system color scheme changes.
+
 ## What is transferred
 
 - Cookies applicable to the selected hosts, including HttpOnly cookies, their
@@ -158,7 +162,7 @@ Other limits:
 The transfer path uses extension memory, native messaging pipes, Node memory,
 and a local CDP connection. There are no credential export files, clipboard
 operations, HTTP listeners, cloud services, or persistent queues. Extension
-settings contain only domain patterns and transfer behavior. The native host
+settings contain only domain patterns, transfer behavior, and theme. The native host
 returns status only, suppresses Puppeteer's protocol logger, and disconnects
 without closing Chrome when finished.
 

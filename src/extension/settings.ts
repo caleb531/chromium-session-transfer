@@ -4,10 +4,16 @@ export interface Settings {
   patterns: string[];
   // Whether to keep Brave tabs after a successful transfer
   behavior: 'keep' | 'close';
+  // The chosen color scheme; system follows the operating system preference
+  theme: 'system' | 'dark' | 'light';
 }
 
 // The defaults used until the user changes the options
-export const DEFAULT_SETTINGS: Settings = { patterns: [], behavior: 'keep' };
+export const DEFAULT_SETTINGS: Settings = {
+  patterns: [],
+  behavior: 'keep',
+  theme: 'system',
+};
 
 // Read the preferences without storing any exported website state
 export async function readSettings(): Promise<Settings> {
@@ -18,9 +24,14 @@ export async function readSettings(): Promise<Settings> {
   return { ...DEFAULT_SETTINGS, ...saved.settings };
 }
 
-// Save the current preferences in the extension's local settings
-export async function writeSettings(settings: Settings): Promise<void> {
+// Save changed preferences without overwriting other open pages' choices
+export async function writeSettings(
+  patch: Partial<Settings>,
+): Promise<Settings> {
+  // The latest preferences with only the requested fields replaced
+  const settings = { ...(await readSettings()), ...patch };
   await chrome.storage.local.set({ settings });
+  return settings;
 }
 
 // Check the supported HTTP(S) subset of Chrome's host match patterns

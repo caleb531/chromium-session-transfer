@@ -36,10 +36,9 @@
   });
 
   // Persist an edit and display a result without losing the current form
-  async function save(next: Settings): Promise<void> {
+  async function save(next: Partial<Settings>): Promise<void> {
     try {
-      await writeSettings(next);
-      settings = next;
+      settings = await writeSettings(next);
       message = 'Settings saved';
       error = false;
     } catch {
@@ -64,7 +63,6 @@
       return;
     }
     await save({
-      ...settings,
       patterns: editing
         ? settings.patterns.map((entry) => (entry === editing ? value : entry))
         : [...settings.patterns, value],
@@ -85,7 +83,6 @@
       value={settings.behavior}
       onchange={(event) =>
         save({
-          ...settings,
           behavior: event.currentTarget.value as Settings['behavior'],
         })}
     >
@@ -147,7 +144,6 @@
             class="danger"
             onclick={() =>
               save({
-                ...settings,
                 patterns: settings.patterns.filter((value) => value !== entry),
               })}
           >

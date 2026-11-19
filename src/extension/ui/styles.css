@@ -12,21 +12,36 @@
   --base-red-100: #fceeee;
   --base-amber-100: #fff4d9;
   --base-amber-800: #70531a;
+  --base-night-950: #111a19;
+  --base-night-900: #1a2725;
+  --base-night-700: #405651;
+  --base-mist-100: #e5eeea;
+  --base-mist-300: #c1d0ca;
+  --base-mist-400: #a4b8af;
+  --base-mint-300: #90d7b2;
+  --base-mint-950: #213d30;
+  --base-rose-300: #ffaaaa;
+  --base-rose-950: #402626;
+  --base-gold-300: #ebce86;
+  --base-gold-950: #39311e;
 
   /* The semantic palette assigns a purpose to each base color */
-  --color-page: var(--base-cream);
-  --color-surface: var(--base-white);
-  --color-text: var(--base-ink-950);
-  --color-secondary: var(--base-ink-700);
-  --color-muted: var(--base-ink-500);
-  --color-border: var(--base-ink-200);
-  --color-accent: var(--base-green-700);
-  --color-accent-soft: var(--base-green-100);
-  --color-on-accent: var(--base-white);
-  --color-danger: var(--base-red-700);
-  --color-danger-soft: var(--base-red-100);
-  --color-notice: var(--base-amber-800);
-  --color-notice-soft: var(--base-amber-100);
+  --color-page: light-dark(var(--base-cream), var(--base-night-950));
+  --color-surface: light-dark(var(--base-white), var(--base-night-900));
+  --color-text: light-dark(var(--base-ink-950), var(--base-mist-100));
+  --color-secondary: light-dark(var(--base-ink-700), var(--base-mist-300));
+  --color-muted: light-dark(var(--base-ink-500), var(--base-mist-400));
+  --color-border: light-dark(var(--base-ink-200), var(--base-night-700));
+  --color-accent: light-dark(var(--base-green-700), var(--base-mint-300));
+  --color-accent-soft: light-dark(var(--base-green-100), var(--base-mint-950));
+  --color-on-accent: light-dark(var(--base-white), var(--base-night-950));
+  --color-danger: light-dark(var(--base-red-700), var(--base-rose-300));
+  --color-danger-soft: light-dark(var(--base-red-100), var(--base-rose-950));
+  --color-notice: light-dark(var(--base-amber-800), var(--base-gold-300));
+  --color-notice-soft: light-dark(var(--base-amber-100), var(--base-gold-950));
+
+  /* Follow the system unless the user explicitly chooses a color scheme */
+  color-scheme: light dark;
 
   font-family:
     Inter,
@@ -38,6 +53,14 @@
   background: var(--color-page);
   font-synthesis: none;
   line-height: 1.55;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
 }
 
 * {
@@ -201,6 +224,16 @@ code {
 label.field {
   display: grid;
   gap: 8px;
+}
+.theme-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-secondary);
+  font-size: 14px;
+}
+.theme-control select {
+  width: auto;
 }
 @media (max-width: 600px) {
   main {
