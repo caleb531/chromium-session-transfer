@@ -29,38 +29,116 @@
   let error = $state(false);
   // Whether the most recent batch completed successfully
   let complete = $state(false);
+  // The last clicked tab used as the anchor for a visible selection range
+  let anchor: number | null = null;
+  // The latest query number prevents older tab snapshots replacing newer ones
+  let refreshId = 0;
   // The currently visible subset of the tab list
   const visible = $derived(
     tabs.filter((tab) =>
       `${tab.title} ${tab.url}`.toLowerCase().includes(search.toLowerCase()),
     ),
   );
+  // Whether every tab in the filtered list is currently selected
+  const allVisible = $derived(
+    visible.length > 0 && visible.every((tab) => selected.includes(tab.id!)),
+  );
+  // Whether the select-all control should display a partially selected state
+  const someVisible = $derived(
+    visible.some((tab) => selected.includes(tab.id!)) && !allVisible,
+  );
 
-  // Read live tabs and preselect sites matching the current saved patterns
+  // Update live tabs while retaining choices for pages that keep their origin
   async function refresh(): Promise<void> {
+    if (busy) return;
+    // The query number checked again before applying this asynchronous result
+    const requestId = ++refreshId;
     try {
-      settings = await readSettings();
-      tabs = (await chrome.tabs.query({})).filter(
-        (tab) =>
-          !tab.incognito &&
-          tab.id !== undefined &&
-          /^https?:\/\//.test(tab.url ?? ''),
+      // The saved patterns used only to preselect new or newly navigated origins
+      const saved = await readSettings();
+      // The eligible tabs in window order and then their visual tab-strip order
+      const current = (await chrome.tabs.query({}))
+        .filter(
+          (tab) =>
+            !tab.incognito &&
+            tab.id !== undefined &&
+            /^https?:\/\//.test(tab.url ?? ''),
+        )
+        .sort(
+          (left, right) =>
+            left.windowId - right.windowId || left.index - right.index,
+        );
+      if (requestId !== refreshId || busy) return;
+      // The old origins distinguish changed pages from simple title updates
+      const previous = new Map(
+        tabs.map((tab) => [tab.id!, new URL(tab.url!).origin]),
       );
-      selected = tabs
+      selected = current
         .filter((tab) =>
-          settings.patterns.some((pattern) =>
-            matchesPattern(tab.url!, pattern),
-          ),
+          previous.get(tab.id!) === new URL(tab.url!).origin
+            ? selected.includes(tab.id!)
+            : saved.patterns.some((pattern) =>
+                matchesPattern(tab.url!, pattern),
+              ),
         )
         .map((tab) => tab.id!);
+      if (
+        anchor !== null &&
+        !current.some(
+          (tab) =>
+            tab.id === anchor &&
+            previous.get(anchor) === new URL(tab.url!).origin,
+        )
+      )
+        anchor = null;
+      tabs = current;
+      settings = saved;
       ready = true;
     } catch {
+      if (requestId !== refreshId || busy) return;
       message = 'Could not read open tabs';
       error = true;
     }
   }
   onMount(() => {
+    // The pending update coalesces bursts of tab events into one fresh query
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Schedule a list update without changing the batch during a transfer
+    const scheduleRefresh = (): void => {
+      if (busy) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        void refresh();
+      }, 100);
+    };
+    // Ignore updates such as favicons that do not affect the displayed list
+    const updated = (_id: number, changes: chrome.tabs.OnUpdatedInfo): void => {
+      if (
+        changes.url !== undefined ||
+        changes.title !== undefined ||
+        changes.discarded !== undefined
+      )
+        scheduleRefresh();
+    };
+    chrome.tabs.onCreated.addListener(scheduleRefresh);
+    chrome.tabs.onRemoved.addListener(scheduleRefresh);
+    chrome.tabs.onMoved.addListener(scheduleRefresh);
+    chrome.tabs.onAttached.addListener(scheduleRefresh);
+    chrome.tabs.onDetached.addListener(scheduleRefresh);
+    chrome.tabs.onReplaced.addListener(scheduleRefresh);
+    chrome.tabs.onUpdated.addListener(updated);
     void refresh();
+    return () => {
+      clearTimeout(timer);
+      refreshId++;
+      chrome.tabs.onCreated.removeListener(scheduleRefresh);
+      chrome.tabs.onRemoved.removeListener(scheduleRefresh);
+      chrome.tabs.onMoved.removeListener(scheduleRefresh);
+      chrome.tabs.onAttached.removeListener(scheduleRefresh);
+      chrome.tabs.onDetached.removeListener(scheduleRefresh);
+      chrome.tabs.onReplaced.removeListener(scheduleRefresh);
+      chrome.tabs.onUpdated.removeListener(updated);
+    };
   });
 
   // Ask before closing the page that owns an in-progress native transfer
@@ -70,11 +148,30 @@
     event.returnValue = '';
   }
 
-  // Update a single checkbox without changing the rest of the selection
-  function toggle(id: number): void {
-    selected = selected.includes(id)
-      ? selected.filter((value) => value !== id)
-      : [...selected, id];
+  // Apply a checkbox state while retaining selected tabs outside the given set
+  function setSelection(ids: number[], checked: boolean): void {
+    selected = checked
+      ? [...new Set([...selected, ...ids])]
+      : selected.filter((id) => !ids.includes(id));
+  }
+
+  // Select one row or apply its checkbox state to a Shift-clicked visible range
+  function toggle(id: number, event: MouseEvent): void {
+    // The checkbox state after the browser processes this click
+    const checked = (event.currentTarget as HTMLInputElement).checked;
+    // The last clicked row's position in the currently filtered list
+    const start = visible.findIndex((tab) => tab.id === anchor);
+    // The current row's position in the same displayed order
+    const end = visible.findIndex((tab) => tab.id === id);
+    setSelection(
+      event.shiftKey && start !== -1
+        ? visible
+            .slice(Math.min(start, end), Math.max(start, end) + 1)
+            .map((tab) => tab.id!)
+        : [id],
+      checked,
+    );
+    anchor = id;
   }
 
   // Request host access during the click gesture, then capture and send the
@@ -138,12 +235,12 @@
           message += ' Some Brave tabs could not be closed.';
         }
       }
-      await refresh();
     } catch (cause) {
       message = cause instanceof Error ? cause.message : 'Transfer failed';
       error = true;
     } finally {
       busy = false;
+      await refresh();
     }
   }
 </script>
@@ -171,27 +268,22 @@
   </label>
   <div class="row between wrap" style="margin-top: 16px">
     <small>{selected.length} selected · {tabs.length} available</small>
-    <div class="actions">
-      <button
-        disabled={busy || !ready}
-        onclick={() => {
-          selected = [
-            ...new Set([...selected, ...visible.map((tab) => tab.id!)]),
-          ];
+    <label class="row">
+      <input
+        type="checkbox"
+        checked={allVisible}
+        indeterminate={someVisible}
+        disabled={busy || !ready || !visible.length}
+        onchange={(event) => {
+          setSelection(
+            visible.map((tab) => tab.id!),
+            event.currentTarget.checked,
+          );
+          anchor = null;
         }}
-      >
-        Select visible
-      </button>
-      <button
-        disabled={busy}
-        onclick={() => {
-          selected = [];
-        }}
-      >
-        Clear
-      </button>
-      <button disabled={busy} onclick={refresh}>Refresh</button>
-    </div>
+      />
+      {search ? 'Select all results' : 'Select all'}
+    </label>
   </div>
   <div style="margin-top: 12px">
     {#each visible as tab (tab.id)}
@@ -200,7 +292,7 @@
           type="checkbox"
           checked={selected.includes(tab.id!)}
           disabled={busy}
-          onchange={() => toggle(tab.id!)}
+          onclick={(event) => toggle(tab.id!, event)}
         />
         <span class="tab-text">
           <span class="tab-title">

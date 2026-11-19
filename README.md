@@ -54,6 +54,12 @@ reconnect it afterward.
 5. Review the opened pages in Chrome to confirm that the websites accepted the
    transferred sessions.
 
+The picker updates automatically as tabs open, close, navigate, or move. Manual
+selections remain intact for tabs that stay on the same origin. **Select all**
+checks or unchecks the current filtered list, and Shift-click applies a checkbox
+state to the displayed range from the last clicked tab. Updates are deferred
+while a transfer is running and applied when it finishes.
+
 Close existing Chrome tabs for the selected sites before transferring. The
 helper also refuses to replace cookies used by other open Chrome tabs sharing
 their domain scope, or to restore origins with active service/shared workers.
