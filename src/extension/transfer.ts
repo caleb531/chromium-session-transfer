@@ -115,9 +115,9 @@ export async function transferTabs(
       HOST_NAME,
       payload,
     )) as HostResult;
-  } catch {
+  } catch (cause) {
     throw new Error(
-      'The local helper is unavailable or disconnected. Build the project and run pnpm host:install with this extension’s ID; see Settings for the command',
+      `Native helper connection failed: ${cause instanceof Error ? cause.message : 'The browser did not provide an error description'}`,
     );
   }
 }

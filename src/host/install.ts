@@ -16,17 +16,23 @@ async function install(): Promise<void> {
   if (process.platform !== 'darwin') {
     throw new Error('The MVP installer currently supports macOS only');
   }
-  // The user-level native messaging registration read by Brave
+  // Brave uses Chrome's native messaging directory on macOS
+  // See PreSandboxStartup in brave-core/app/brave_main_delegate.cc
   const directory = resolve(
     homedir(),
-    'Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts',
+    'Library/Application Support/Google/Chrome/NativeMessagingHosts',
   );
   // The manifest path belonging exclusively to this project
   const manifestPath = resolve(directory, `${HOST_NAME}.json`);
+  // The unused registration created by the original installer
+  const legacyManifestPath = resolve(
+    homedir(),
+    'Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts',
+    `${HOST_NAME}.json`,
+  );
   if (process.argv.includes('--uninstall')) {
-    await unlink(manifestPath).catch((error: NodeJS.ErrnoException) => {
-      if (error.code !== 'ENOENT') throw error;
-    });
+    await removeRegistration(manifestPath);
+    await removeRegistration(legacyManifestPath);
     process.stdout.write('Removed the Brave native helper registration\n');
     return;
   }
@@ -67,9 +73,17 @@ async function install(): Promise<void> {
     { mode: 0o600 },
   );
   await chmod(manifestPath, 0o600);
+  await removeRegistration(legacyManifestPath);
   process.stdout.write(
-    `Registered the on-demand helper for extension ${extensionId}\nNo browser restart is required. Re-run this command if Node or the project moves.\n`,
+    `Registered the on-demand helper for extension ${extensionId}\nManifest: ${manifestPath}\nNo browser restart is required. Re-run this command if Node or the project moves.\n`,
   );
+}
+
+// Remove only this helper's registration; a missing file is already uninstalled
+async function removeRegistration(path: string): Promise<void> {
+  await unlink(path).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'ENOENT') throw error;
+  });
 }
 
 // Derive the unpacked extension's stable ID from its public manifest key

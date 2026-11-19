@@ -16,8 +16,12 @@ pnpm build
 pnpm host:install
 ```
 
-The installer registers the local helper in Brave's user-level
-`NativeMessagingHosts` directory. It creates a launcher in `.local/` that uses
+The installer registers the local helper in
+`~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`. Brave on
+macOS deliberately reads Chrome's registration directory; see
+[Brave's startup code](https://github.com/brave/brave-core/blob/master/app/brave_main_delegate.cc).
+The installer removes this project's old registration from Brave's own profile
+directory if present. It creates a launcher in `.local/` that uses
 the absolute path to the Node executable running the installer. Run the command
 again if you move the repository or change Node installations. It does not
 launch a browser, create a daemon, or change your Codex configuration.
