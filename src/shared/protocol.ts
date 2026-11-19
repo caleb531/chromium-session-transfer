@@ -77,6 +77,21 @@ export interface StorageSnapshot {
   databases: DatabaseSnapshot[];
 }
 
+// The serialized result returned even when an injected storage operation fails
+export type StorageResult =
+  | {
+      // Whether the storage operation completed successfully
+      ok: true;
+      // The captured state; writes return only their completion status
+      snapshot?: StorageSnapshot;
+    }
+  | {
+      // Whether the storage operation completed successfully
+      ok: false;
+      // The failure reason without database record contents
+      message: string;
+    };
+
 // A tab and its separately captured sessionStorage
 export interface TransferTab {
   // The Brave tab ID used only to close a successfully transferred tab

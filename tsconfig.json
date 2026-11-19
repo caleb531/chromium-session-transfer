@@ -14,7 +14,6 @@
   "include": [
     "src/extension",
     "src/shared",
-    "src/ui",
     "vite.config.ts",
     "svelte.config.js"
   ]

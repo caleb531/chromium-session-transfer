@@ -22,7 +22,8 @@
     "host:uninstall": "node dist/host/host/install.js --uninstall"
   },
   "dependencies": {
-    "puppeteer-core": "^25.18.1"
+    "puppeteer-core": "^25.18.1",
+    "tldts": "^7.5.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

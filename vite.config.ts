@@ -6,7 +6,10 @@ import webExtension from 'vite-plugin-web-extension';
 export default defineConfig({
   plugins: [
     svelte(),
-    webExtension({ disableAutoLaunch: true, additionalInputs: ['picker.html'] }),
+    webExtension({
+      disableAutoLaunch: true,
+      additionalInputs: ['picker.html'],
+    }),
   ],
   build: { outDir: 'dist/extension', emptyOutDir: true },
 });

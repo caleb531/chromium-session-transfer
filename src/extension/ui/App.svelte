@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Options from './Options.svelte';
+  import Picker from './Picker.svelte';
   // Whether this extension page is the settings panel
   const options = location.pathname.endsWith('options.html');
 </script>
@@ -11,8 +13,5 @@
     </h1>
     <p class="muted">Chrome Session Transfer</p>
   </header>
-  <section class="panel">
-    <h2>{options ? 'Settings' : 'Send to Chrome'}</h2>
-    <p>Your browser sessions, ready to go.</p>
-  </section>
+  {#if options}<Options />{:else}<Picker />{/if}
 </main>
