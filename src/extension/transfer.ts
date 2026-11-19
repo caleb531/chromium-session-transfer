@@ -6,6 +6,7 @@ import type {
 } from '../shared/protocol.js';
 import { websiteStorage } from '../shared/storage.js';
 import { cookieSite, selectedPartition } from '../shared/sites.js';
+import { describeError } from '../shared/errors.js';
 
 // Capture every supported store before sending a single payload to the helper
 export async function transferTabs(
@@ -116,8 +117,7 @@ export async function transferTabs(
       payload,
     )) as HostResult;
   } catch (cause) {
-    throw new Error(
-      `Native helper connection failed: ${cause instanceof Error ? cause.message : 'The browser did not provide an error description'}`,
-    );
+    console.error('[chrome-session-transfer] Native messaging failed', cause);
+    throw new Error(`Native helper connection failed: ${describeError(cause)}`);
   }
 }

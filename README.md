@@ -49,6 +49,15 @@ active MCP connection needs verification on your installed Chrome version. If
 Chrome refuses a second connection, disconnect MCP before transferring, then
 reconnect it afterward.
 
+Auto-connect reads `DevToolsActivePort` from Chrome's data directory. macOS may
+block that read with a **Data Access Blocked** notification for **node**. Review
+**System Settings → Privacy & Security → Files & Folders → node**, and grant
+Google Chrome data access if you want the helper to discover its connection.
+This is separate from Chrome's remote-debugging permission and applies to the
+Node executable, including other scripts run with it. The helper does not
+change macOS privacy settings. Connection failures include their underlying
+cause so a permission denial is distinguishable from a transport failure.
+
 ## Transfer tabs
 
 1. Click **Send to Chrome**, or press **Option+Shift+C** in Brave.
@@ -198,6 +207,13 @@ pnpm lint            # Run ESLint with Svelte and Prettier integration
 pnpm format          # Format source and configuration
 pnpm format:check    # Check formatting without editing files
 ```
+
+The picker writes progress and failure details to its DevTools console. The
+native helper writes timestamped stages and error stacks (including nested
+causes) to stderr, which the browser handles as native-host diagnostic output.
+Stdout is reserved for native-message framing. On-screen failures include the
+underlying cause. Neither logger dumps transfer payloads or CDP traffic, and
+the tool creates no log files.
 
 There are no automated tests in this iteration. No browser automation has been
 used to validate real sessions yet. Build checks establish compilation only;

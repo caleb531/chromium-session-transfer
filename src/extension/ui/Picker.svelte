@@ -10,6 +10,7 @@
   import type { Settings } from '../settings';
   import { transferTabs } from '../transfer';
   import { cookiePermission } from '../../shared/sites';
+  import { describeError } from '../../shared/errors';
 
   // The open HTTP(S) tabs eligible for a transfer
   let tabs = $state<chrome.tabs.Tab[]>([]);
@@ -96,7 +97,8 @@
       ready = true;
     } catch (cause) {
       if (requestId !== refreshId || busy) return;
-      message = `Could not read open tabs: ${cause instanceof Error ? cause.message : 'Unknown error'}`;
+      console.error('[chrome-session-transfer] Could not refresh tabs', cause);
+      message = `Could not read open tabs: ${describeError(cause)}`;
       error = true;
     }
   }
@@ -183,6 +185,9 @@
     // The host permission patterns needed for the selected origins
     const patterns = [...new Set(chosen.map((tab) => originPattern(tab.url!)))];
     busy = true;
+    console.info(
+      `[chrome-session-transfer] Starting transfer of ${chosen.length} tabs`,
+    );
     error = false;
     complete = false;
     message = 'Requesting access to the selected websites…';
@@ -214,6 +219,7 @@
       await writeSettings({ patterns: settings.patterns });
       // The helper's credential-free completion response
       const result = await transferTabs(chosen, (progress) => {
+        console.info('[chrome-session-transfer]', progress);
         message = progress;
       });
       if (!result.ok) throw new Error(result.message);
@@ -226,18 +232,26 @@
           try {
             if ((await chrome.tabs.get(tab.id!)).url === tab.url)
               closable.push(tab.id!);
-          } catch {
-            /* A tab already closed by the user needs no further action */
+          } catch (cause) {
+            console.warn(
+              '[chrome-session-transfer] A source tab disappeared before closing',
+              cause,
+            );
           }
         }
         try {
           await chrome.tabs.remove(closable);
-        } catch {
+        } catch (cause) {
+          console.error(
+            '[chrome-session-transfer] Could not close source tabs',
+            cause,
+          );
           message += ' Some Brave tabs could not be closed.';
         }
       }
     } catch (cause) {
-      message = cause instanceof Error ? cause.message : 'Transfer failed';
+      console.error('[chrome-session-transfer] Transfer failed', cause);
+      message = describeError(cause);
       error = true;
     } finally {
       busy = false;

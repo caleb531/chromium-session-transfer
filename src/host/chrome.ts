@@ -15,6 +15,8 @@ import type {
 } from '../shared/protocol.js';
 import { websiteStorage } from '../shared/storage.js';
 import { cookieSite, selectedPartition } from '../shared/sites.js';
+import { describeError, errorChain } from '../shared/errors.js';
+import { logError, logStep } from './log.js';
 
 // Check whether a cookie's domain scope includes the given hostname
 function matchesCookie(host: string, domain: string): boolean {
@@ -186,9 +188,9 @@ async function preparePage(browser: Browser, origin: string): Promise<Page> {
               body: '<!doctype html><title>Preparing session transfer</title><p>Restoring stored session…</p>',
             })
           : request.abort()
-      ).catch(() => {
-        /* Navigation reports interception failures */
-      });
+      ).catch((cause: unknown) =>
+        logError('Bootstrap request interception failed', cause),
+      );
     };
     page.on('request', intercept);
     await page.goto(bootstrapUrl, {
@@ -196,10 +198,15 @@ async function preparePage(browser: Browser, origin: string): Promise<Page> {
       timeout: 30000,
     });
     return page;
-  } catch {
-    await page.close().catch(() => {});
+  } catch (cause) {
+    await page
+      .close()
+      .catch((error: unknown) =>
+        logError('Could not close a failed bootstrap page', error),
+      );
     throw new Error(
       'Could not prepare a destination origin without running website code',
+      { cause },
     );
   }
 }
@@ -234,6 +241,7 @@ export async function importToChrome(
   validatePayload(payload);
   // The browser connection is detached at the end; Chrome itself stays open
   let browser: Browser;
+  logStep('Connecting to the existing Chrome default profile');
   try {
     browser = await puppeteer.connect({
       channel: 'chrome',
@@ -243,11 +251,27 @@ export async function importToChrome(
       // Suppress protocol logging because CDP messages contain session secrets
       logger: () => undefined,
     });
-  } catch {
+  } catch (cause) {
+    logError('Chrome connection failed', cause);
+    for (const error of errorChain(cause)) {
+      // The filesystem error code wrapped by Puppeteer's discovery error
+      const code = (error as NodeJS.ErrnoException).code;
+      // File-open denials need different guidance from denied socket connections
+      const syscall = (error as NodeJS.ErrnoException).syscall;
+      if (
+        process.platform === 'darwin' &&
+        syscall === 'open' &&
+        (code === 'EPERM' || code === 'EACCES')
+      ) {
+        return {
+          ok: false,
+          message: `macOS denied the helper access while discovering Chrome. Review node’s Google Chrome access under System Settings → Privacy & Security → Files & Folders. Details: ${describeError(cause)}`,
+        };
+      }
+    }
     return {
       ok: false,
-      message:
-        'Could not connect to Chrome. Keep Chrome open, enable chrome://inspect/#remote-debugging, and approve the connection request. An existing MCP connection may need to be disconnected before retrying',
+      message: `Could not connect to Chrome: ${describeError(cause)}`,
     };
   }
   // The new destination pages owned by this batch
@@ -271,6 +295,7 @@ export async function importToChrome(
   let session: CDPSession | undefined;
   // The current phase used in errors without printing exported records
   let phase = 'checking the destination';
+  logStep(phase);
   try {
     session = await browser.target().createCDPSession();
     // The live default-profile cookies before replacing the selected scopes
@@ -324,9 +349,11 @@ export async function importToChrome(
       }
     }
     phase = 'preparing destination pages';
+    logStep(phase);
     for (const tab of payload.tabs)
       pages.push(await preparePage(browser, tab.origin));
     phase = 'capturing destination backups';
+    logStep(phase);
     for (const origin of payload.origins) {
       // The first script-free tab for this shared origin
       const page =
@@ -337,6 +364,7 @@ export async function importToChrome(
       });
     }
     phase = 'restoring website storage';
+    logStep(phase);
     for (const origin of payload.origins) {
       touched.add(origin.origin);
       await restoreStorage(backups.get(origin.origin)!.page, origin);
@@ -370,6 +398,7 @@ export async function importToChrome(
       }
     }
     phase = 'restoring cookies';
+    logStep(phase);
     cookiesTouched = true;
     await clearCookies(session, domains, sites);
     await session.send('Storage.setCookies', {
@@ -404,6 +433,7 @@ export async function importToChrome(
       }
     }
     phase = 'opening transferred pages';
+    logStep(phase);
     navigating = true;
     for (let index = 0; index < pages.length; index++) {
       await pages[index].setRequestInterception(false);
@@ -414,17 +444,18 @@ export async function importToChrome(
         timeout: 45000,
       });
     }
+    logStep(`Opened ${pages.length} destination tabs`);
     return {
       ok: true,
       count: pages.length,
       message: `Restored stored state and opened ${pages.length} ${pages.length === 1 ? 'tab' : 'tabs'} in Chrome. Check the websites to confirm their sessions were accepted`,
     };
-  } catch {
+  } catch (cause) {
+    logError(`Transfer failed while ${phase}`, cause);
     if (navigating) {
       return {
         ok: false,
-        message:
-          'Stored state was restored, but at least one page failed to load. Brave tabs were kept; destination tabs remain in Chrome for review. No rollback was attempted after website navigation began',
+        message: `Stored state was restored, but at least one page failed to load. Brave tabs were kept; destination tabs remain in Chrome for review. No rollback was attempted after website navigation began. Details: ${describeError(cause)}`,
       };
     }
     // Whether every attempted rollback operation completed successfully
@@ -434,7 +465,8 @@ export async function importToChrome(
       const backup = backups.get(origin)!;
       try {
         await restoreStorage(backup.page, backup.snapshot);
-      } catch {
+      } catch (error) {
+        logError(`Storage rollback failed for ${origin}`, error);
         rolledBack = false;
       }
     }
@@ -444,17 +476,27 @@ export async function importToChrome(
         await session.send('Storage.setCookies', {
           cookies: previousCookies.map(checkpointCookie),
         });
-      } catch {
+      } catch (error) {
+        logError('Cookie rollback failed', error);
         rolledBack = false;
       }
     }
-    for (const page of pages) await page.close().catch(() => {});
+    for (const page of pages)
+      await page
+        .close()
+        .catch((error: unknown) =>
+          logError('Could not close a destination page after rollback', error),
+        );
     return {
       ok: false,
-      message: `Transfer failed while ${phase}. Brave tabs were kept. ${rolledBack ? 'Destination changes were rolled back before website navigation' : 'Some destination state could not be rolled back; review Chrome before retrying'}`,
+      message: `Transfer failed while ${phase}. Brave tabs were kept. ${rolledBack ? 'Destination changes were rolled back before website navigation' : 'Some destination state could not be rolled back; review Chrome before retrying'}. Details: ${describeError(cause)}`,
     };
   } finally {
-    await session?.detach().catch(() => {});
+    await session
+      ?.detach()
+      .catch((error: unknown) =>
+        logError('Could not detach the cookie debugging session', error),
+      );
     await browser.disconnect();
   }
 }
