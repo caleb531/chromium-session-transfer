@@ -172,6 +172,11 @@ tab that has navigated since capture is also left open. Successful navigation
 does not establish successful authentication; use the keep-open setting until
 you have verified your sites.
 
+**Close the picker after a successful transfer** is enabled by default. Turn it
+off in Transfer Behavior to keep the result visible. The picker remains open if
+the transfer fails, source-tab cleanup fails, or another error is displayed.
+This setting is independent of whether the original source tabs are kept open.
+
 The **Theme** selector on both extension pages offers **System** (the default),
 **Dark**, and **Light**. The choice is saved locally and updates other open
 extension pages. System mode follows operating-system color scheme changes.
@@ -270,7 +275,8 @@ Other limits:
 The transfer path uses extension memory, native messaging pipes, Node memory,
 and a local CDP connection. There are no credential export files, clipboard
 operations, HTTP listeners, cloud services, or persistent queues. Extension
-settings contain only the destination, domain patterns, transfer behavior, and theme. The native host
+settings contain only the destination, domain patterns, transfer behavior,
+picker closing preference, and theme. The native host
 returns status only, suppresses Puppeteer's protocol logger, and disconnects
 without closing the destination when finished.
 

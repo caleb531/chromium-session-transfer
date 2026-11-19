@@ -9,6 +9,8 @@ export interface Settings {
   destination: BrowserId;
   // Whether to keep source tabs after a successful transfer
   behavior: 'keep' | 'close';
+  // Whether to close the picker after a transfer finishes without errors
+  closePickerOnSuccess: boolean;
   // The chosen color scheme; system follows the operating system preference
   theme: 'system' | 'dark' | 'light';
 }
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   patterns: [],
   destination: DEFAULT_DESTINATION,
   behavior: 'keep',
+  closePickerOnSuccess: true,
   theme: 'system',
 };
 

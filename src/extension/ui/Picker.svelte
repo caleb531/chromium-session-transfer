@@ -258,6 +258,7 @@
             cause,
           );
           message += ' Some source tabs could not be closed.';
+          error = true;
         }
       }
     } catch (cause) {
@@ -267,6 +268,24 @@
     } finally {
       busy = false;
       await refresh();
+    }
+    if (!busy && complete && !error && settings.closePickerOnSuccess) {
+      try {
+        // Closing after busy clears avoids the in-progress beforeunload guard
+        const picker = await chrome.tabs.getCurrent();
+        if (picker?.id === undefined)
+          throw new Error('Could not identify the picker tab');
+        // Keep the page if another transfer started while its tab was identified
+        if (busy || !complete || error) return;
+        await chrome.tabs.remove(picker.id);
+      } catch (cause) {
+        console.error(
+          '[chromium-session-transfer] Could not close the picker',
+          cause,
+        );
+        message = `Transfer completed, but the picker could not close: ${describeError(cause)}`;
+        error = true;
+      }
     }
   }
 </script>

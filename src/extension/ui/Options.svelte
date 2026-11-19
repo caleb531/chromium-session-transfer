@@ -116,6 +116,17 @@
     storage restoration and navigation; it does not prove the website accepted
     the login.
   </p>
+  <label class="row">
+    <input
+      type="checkbox"
+      disabled={!ready}
+      checked={settings.closePickerOnSuccess}
+      onchange={(event) =>
+        save({ closePickerOnSuccess: event.currentTarget.checked })}
+    />
+    Close the picker after a successful transfer
+  </label>
+  <p class="muted">The picker stays open if an error occurs.</p>
 </section>
 
 <section class="panel">
