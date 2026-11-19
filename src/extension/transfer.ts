@@ -117,7 +117,7 @@ export async function transferTabs(
       payload,
     )) as HostResult;
   } catch (cause) {
-    console.error('[chrome-session-transfer] Native messaging failed', cause);
+    console.error('[chromium-session-transfer] Native messaging failed', cause);
     throw new Error(`Native helper connection failed: ${describeError(cause)}`);
   }
 }

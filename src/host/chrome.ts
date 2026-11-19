@@ -169,7 +169,7 @@ async function preparePage(browser: Browser, origin: string): Promise<Page> {
     await page.setBypassServiceWorker(true);
     await page.setRequestInterception(true);
     // The unique main-document request fulfilled locally by the helper
-    const bootstrapUrl = `${origin}/.well-known/chrome-session-transfer/${randomUUID()}`;
+    const bootstrapUrl = `${origin}/.well-known/chromium-session-transfer/${randomUUID()}`;
     // Fulfill only the bootstrap document; no website request is sent in this
     // phase
     const intercept = (request: HTTPRequest): void => {
@@ -280,7 +280,7 @@ export async function importToChrome(
       ) {
         return {
           ok: false,
-          message: `macOS denied the helper access while discovering Chrome. Review Google Chrome access for Chrome Session Transfer Helper (or node, if that is the identity macOS shows) under System Settings → Privacy & Security → Files & Folders. Details: ${describeError(cause)}`,
+          message: `macOS denied the helper access while discovering Chrome. Review Google Chrome access for Chromium Session Transfer Helper (or node, if that is the identity macOS shows) under System Settings → Privacy & Security → Files & Folders. Details: ${describeError(cause)}`,
         };
       }
     }

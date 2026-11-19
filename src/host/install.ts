@@ -18,7 +18,7 @@ async function buildBundle(entry: string): Promise<string> {
   // The stable development bundle, separate from the disposable build output
   const bundle = resolve(
     dirname(entry),
-    '../../../.local/Chrome Session Transfer Helper.app',
+    '../../../.local/Chromium Session Transfer Helper.app',
   );
   // The directory containing the app's native entry point and Node runtime
   const executables = resolve(bundle, 'Contents/MacOS');
@@ -46,9 +46,9 @@ async function buildBundle(entry: string): Promise<string> {
     `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-<key>CFBundleIdentifier</key><string>com.calebevans.chrome-session-transfer.helper</string>
+<key>CFBundleIdentifier</key><string>com.calebevans.chromium-session-transfer.helper</string>
 <key>CFBundleExecutable</key><string>session-transfer-helper</string>
-<key>CFBundleName</key><string>Chrome Session Transfer Helper</string>
+<key>CFBundleName</key><string>Chromium Session Transfer Helper</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>

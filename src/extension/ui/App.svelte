@@ -68,7 +68,7 @@
     <h1>
       {options ? 'Make yourself at home.' : 'Pick up where you left off.'}
     </h1>
-    <p class="muted">Chrome Session Transfer</p>
+    <p class="muted">Chromium Session Transfer</p>
     {#if themeError}<p role="status" class="error">{themeError}</p>{/if}
   </header>
   {#if options}<Options />{:else}<Picker />{/if}

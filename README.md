@@ -1,4 +1,4 @@
-# Chrome Session Transfer
+# Chromium Session Transfer
 
 Transfer selected Brave tabs and their stored website state into an already-open
 Google Chrome profile. Chrome remains available to Chrome DevTools MCP through
@@ -21,7 +21,7 @@ The installer registers the local helper in
 macOS deliberately reads Chrome's registration directory; see
 [Brave's startup code](https://github.com/brave/brave-core/blob/master/app/brave_main_delegate.cc).
 The installer removes this project's old registration from Brave's own profile
-directory if present. It builds `.local/Chrome Session Transfer Helper.app`
+directory if present. It builds `.local/Chromium Session Transfer Helper.app`
 using the installed Apple Command Line Tools. The app contains a small native
 launcher and a copy of the Node executable running the installer; the compiled
 TypeScript and dependencies still run from this checkout. Run the command again
@@ -38,7 +38,7 @@ Load the extension in Brave:
 
 1. Open `brave://extensions` and enable **Developer mode**.
 2. Choose **Load unpacked** and select this repository's `dist/extension` folder.
-3. Pin **Chrome Session Transfer** to the toolbar.
+3. Pin **Chromium Session Transfer** to the toolbar.
 
 The checked-in public manifest key keeps the unpacked extension's ID stable, so
 the helper can be registered before you load the extension. No private signing
@@ -59,7 +59,7 @@ reconnect it afterward.
 
 Auto-connect reads `DevToolsActivePort` from Chrome's data directory. macOS may
 block that read with a **Data Access Blocked** notification. The bundle is meant
-to attribute this access to **Chrome Session Transfer Helper** rather than your
+to attribute this access to **Chromium Session Transfer Helper** rather than your
 general-purpose Node installation. Review **System Settings → Privacy & Security
 → Files & Folders** for the actual requesting identity and grant Google Chrome
 access if available. If the request still appears as **node**, record that

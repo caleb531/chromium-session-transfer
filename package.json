@@ -1,5 +1,5 @@
 {
-  "name": "chrome-session-transfer",
+  "name": "chromium-session-transfer",
   "version": "0.1.0",
   "private": true,
   "description": "Transfer selected Brave tabs and their stored sessions to Chrome",

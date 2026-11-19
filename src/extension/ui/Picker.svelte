@@ -97,7 +97,10 @@
       ready = true;
     } catch (cause) {
       if (requestId !== refreshId || busy) return;
-      console.error('[chrome-session-transfer] Could not refresh tabs', cause);
+      console.error(
+        '[chromium-session-transfer] Could not refresh tabs',
+        cause,
+      );
       message = `Could not read open tabs: ${describeError(cause)}`;
       error = true;
     }
@@ -186,7 +189,7 @@
     const patterns = [...new Set(chosen.map((tab) => originPattern(tab.url!)))];
     busy = true;
     console.info(
-      `[chrome-session-transfer] Starting transfer of ${chosen.length} tabs`,
+      `[chromium-session-transfer] Starting transfer of ${chosen.length} tabs`,
     );
     error = false;
     complete = false;
@@ -219,7 +222,7 @@
       await writeSettings({ patterns: settings.patterns });
       // The helper's credential-free completion response
       const result = await transferTabs(chosen, (progress) => {
-        console.info('[chrome-session-transfer]', progress);
+        console.info('[chromium-session-transfer]', progress);
         message = progress;
       });
       if (!result.ok) throw new Error(result.message);
@@ -234,7 +237,7 @@
               closable.push(tab.id!);
           } catch (cause) {
             console.warn(
-              '[chrome-session-transfer] A source tab disappeared before closing',
+              '[chromium-session-transfer] A source tab disappeared before closing',
               cause,
             );
           }
@@ -243,14 +246,14 @@
           await chrome.tabs.remove(closable);
         } catch (cause) {
           console.error(
-            '[chrome-session-transfer] Could not close source tabs',
+            '[chromium-session-transfer] Could not close source tabs',
             cause,
           );
           message += ' Some Brave tabs could not be closed.';
         }
       }
     } catch (cause) {
-      console.error('[chrome-session-transfer] Transfer failed', cause);
+      console.error('[chromium-session-transfer] Transfer failed', cause);
       message = describeError(cause);
       error = true;
     } finally {

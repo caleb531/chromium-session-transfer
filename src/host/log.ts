@@ -3,7 +3,7 @@ import { describeError, errorChain } from '../shared/errors.js';
 // Write a credential-free progress message outside the native stdout protocol
 export function logStep(message: string): void {
   process.stderr.write(
-    `[chrome-session-transfer] ${new Date().toISOString()} ${message}\n`,
+    `[chromium-session-transfer] ${new Date().toISOString()} ${message}\n`,
   );
 }
 

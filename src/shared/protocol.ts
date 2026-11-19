@@ -1,5 +1,5 @@
 // The installed native host used by the Brave extension
-export const HOST_NAME = 'com.calebevans.chrome_session_transfer';
+export const HOST_NAME = 'com.calebevans.chromium_session_transfer';
 
 // The format version shared by the extension and native helper
 export const FORMAT_VERSION = 2;
