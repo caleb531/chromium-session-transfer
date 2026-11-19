@@ -145,8 +145,15 @@ while a transfer is running and applied when it finishes.
 
 Close existing destination tabs for the selected sites before transferring. The
 helper also refuses to replace cookies used by other open destination tabs sharing
-their domain scope, or to restore origins with active service/shared workers.
-This avoids overwriting storage while those pages or workers are using it.
+their domain scope. Running service/shared workers for selected origins delay
+the transfer automatically: the helper listens for target lifecycle events and
+shows how many workers remain. It proceeds after they stop and a brief quiet
+interval passes, or fails after 60 seconds without importing anything. It does
+not force-stop workers or remove their registrations. Unrelated workers do not
+block the transfer. Cookie backups and destination tabs are checked again after
+waiting because either may have changed while workers were finishing. This
+avoids starting restoration while those pages or workers are using the storage;
+it does not prevent a worker from restarting later.
 Selecting the same browser/profile that owns the source tabs is therefore
 rejected by the same open-tab guard; the helper never closes those source tabs
 to make the check pass.

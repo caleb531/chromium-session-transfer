@@ -19,6 +19,7 @@ import { describeError, errorChain } from '../shared/errors.js';
 import { logError, logStep } from './log.js';
 import { BROWSERS, isBrowserId } from '../shared/browsers.js';
 import { connectBrowser } from './browser.js';
+import { waitForWorkers } from './workers.js';
 
 // Check whether a cookie's domain scope includes the given hostname
 function matchesCookie(host: string, domain: string): boolean {
@@ -316,54 +317,62 @@ export async function importToBrowser(
   progress(phase);
   try {
     session = await browser.target().createCDPSession();
-    // The live default-profile cookies before replacing the selected scopes
-    const existingCookies = (await session.send('Storage.getCookies')).cookies;
-    // The hosts represented by the selected source pages
+    // The hosts and origins represented by the selected source pages
     const hosts = payload.tabs.map((tab) => new URL(tab.url).hostname);
-    domains = [
-      ...new Set([
-        ...payload.cookies.map((cookie) => cookie.domain),
-        ...existingCookies
-          .filter((cookie) =>
-            hosts.some((host) => matchesCookie(host, cookie.domain)),
-          )
-          .map((cookie) => cookie.domain),
-      ]),
-    ];
-    previousCookies = existingCookies.filter(
-      (cookie) =>
-        domains.includes(cookie.domain) &&
-        selectedPartition(cookie.partitionKey, sites),
-    );
     // The origins whose shared storage will be replaced
     const origins = new Set(payload.origins.map((entry) => entry.origin));
-    for (const page of await browser.pages()) {
-      if (!/^https?:\/\//.test(page.url())) continue;
-      // The open page that could race storage restoration or share replaced
-      // cookies
-      const url = new URL(page.url());
-      if (
-        origins.has(url.origin) ||
-        domains.some((domain) => matchesCookie(url.hostname, domain))
-      ) {
-        return {
-          ok: false,
-          message: `Close ${destination.name} tabs at ${url.origin} before retrying; that site shares storage or cookies with this transfer. Nothing was imported`,
-        };
+
+    // Capture the current cookie scopes and backup before any replacement
+    async function checkpointCookies(): Promise<void> {
+      // Workers can update these cookies while the helper waits for them
+      const existingCookies = (await session!.send('Storage.getCookies'))
+        .cookies;
+      domains = [
+        ...new Set([
+          ...payload.cookies.map((cookie) => cookie.domain),
+          ...existingCookies
+            .filter((cookie) =>
+              hosts.some((host) => matchesCookie(host, cookie.domain)),
+            )
+            .map((cookie) => cookie.domain),
+        ]),
+      ];
+      previousCookies = existingCookies.filter(
+        (cookie) =>
+          domains.includes(cookie.domain) &&
+          selectedPartition(cookie.partitionKey, sites),
+      );
+    }
+
+    // Recheck open tabs after waiting so a newly opened page can't bypass the guard
+    async function checkOpenTabs(): Promise<void> {
+      for (const page of await browser.pages()) {
+        if (!/^https?:\/\//.test(page.url())) continue;
+        // The page that could race storage restoration or share replaced cookies
+        const url = new URL(page.url());
+        if (
+          origins.has(url.origin) ||
+          domains.some((domain) => matchesCookie(url.hostname, domain))
+        ) {
+          throw new Error(
+            `Close ${destination.name} tabs at ${url.origin} before retrying; that site shares storage or cookies with this transfer`,
+          );
+        }
       }
     }
-    for (const target of browser.targets()) {
-      if (
-        !['service_worker', 'shared_worker'].includes(target.type()) ||
-        !/^https?:\/\//.test(target.url())
-      )
-        continue;
-      if (origins.has(new URL(target.url()).origin)) {
-        return {
-          ok: false,
-          message: `A ${destination.name} background worker is active for a selected origin. Close that site and wait for its worker to stop before retrying; nothing was imported`,
-        };
-      }
+
+    await checkpointCookies();
+    await checkOpenTabs();
+    phase = 'waiting for background workers';
+    // A completed wait invalidates the earlier cookie checkpoint and tab check
+    const waited = await waitForWorkers(browser, origins, (remaining) => {
+      progress(
+        `Waiting for ${destination.name} background workers to stop (${remaining} remaining)…`,
+      );
+    });
+    if (waited) {
+      await checkpointCookies();
+      await checkOpenTabs();
     }
     phase = 'preparing destination pages';
     progress(phase);
@@ -516,7 +525,7 @@ export async function importToBrowser(
         );
     return {
       ok: false,
-      message: `Transfer failed while ${phase}. Source tabs were kept. ${rolledBack ? 'Destination changes were rolled back before website navigation' : 'Some destination state could not be rolled back; review the destination browser before retrying'}. Details: ${describeError(cause)}`,
+      message: `Transfer failed while ${phase}. Source tabs were kept. ${!touched.size && !cookiesTouched ? 'Nothing was imported' : rolledBack ? 'Destination changes were rolled back before website navigation' : 'Some destination state could not be rolled back; review the destination browser before retrying'}. Details: ${describeError(cause)}`,
     };
   } finally {
     await session
