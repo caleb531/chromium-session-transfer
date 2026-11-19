@@ -10,12 +10,20 @@
     "service_worker": "src/extension/background.ts",
     "type": "module"
   },
-  "action": { "default_title": "Send to Chrome" },
-  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "action": {
+    "default_title": "Send to Chrome"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "commands": {
     "_execute_action": {
-      "suggested_key": { "default": "Alt+Shift+C" },
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      },
       "description": "Choose tabs to send to Chrome"
     }
-  }
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyR5UivpIJa2slCySsduvnabylFuJ3q3IIyxmgoZfsTXK7G+wv0HFfObh7bSFOXNIgUF9BlvN4s0mdgjHs90dWRcfYduoUKGoTdMpkLew1Ss5ZSAlY2K6isVDpla45GZjnvn4Bd53wwu1BYCJtdsNB/KVtnAOWWcxkSxkJtjJKuliGYxsQk6AfQPiC7Rc3DLXciT+bTAXFaW1Ut8jTAt6QTyanoSr6b/ganymzsHu0vJVDVPfxrgGXMXL2S+STYjKBykkHLLRBNDQEGWBepOFUC6QG0UYYLQFBq+7dJ6LrUTaDfnDnC7y2amUYeJRE7C9b/j1D0VepA6UZQNiYpLv9QIDAQAB"
 }
