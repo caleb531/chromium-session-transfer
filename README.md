@@ -169,18 +169,21 @@ arrays, undefined, special numeric values, BigInt, Date, RegExp, Map, Set,
 ArrayBuffer, the standard integer/float typed arrays, DataView, Blob, File, and
 extractable CryptoKey values. Unknown structured value types fail explicitly.
 
-Two important cases stop the batch before destination changes:
+Auto-increment stores preserve their next generated key, including counters
+ahead of surviving records and exhausted generators. Capture reads records and
+probes each generator in the same transaction, then deliberately aborts before
+any probe can commit. Stores with generators require a read/write transaction;
+aborting restores both records and counters. Restoration advances each new
+store's generator using a temporary record deleted before real records are
+inserted. Readback verification includes the generator state.
 
-- **Non-exportable CryptoKeys:** their private material cannot be extracted.
-- **Auto-increment object stores:** IndexedDB does not expose the current key
-  generator counter. Recreating records alone can reset it when previously
-  generated records have been deleted. The MVP refuses those stores rather
-  than silently changing future generated keys.
+Non-exportable CryptoKeys still stop the batch before destination changes;
+their private material cannot be extracted.
 
 Other limits:
 
 - Live source pages are not frozen. Each database is read in a consistent
-  readonly transaction, but the entire multi-origin snapshot is not atomic.
+  transaction, but the entire multi-origin snapshot is not atomic.
   Avoid interacting with the selected pages during capture.
 - Named storage buckets, Cache Storage, service worker registrations, memory
   state, history, unsaved forms, and browser-managed credentials are not copied.

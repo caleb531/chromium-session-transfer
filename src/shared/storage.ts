@@ -370,6 +370,183 @@ export async function websiteStorage(
     }
   }
 
+  // The records and generator state captured before encoding structured values
+  type CapturedStore = Omit<StoreSnapshot, 'records'> & {
+    // The primary keys in the same order as their values
+    keys: IDBValidKey[];
+    // The original structured values read before probing the generator
+    values: unknown[];
+  };
+
+  // Read records and counters together; abort probes before they can commit
+  function captureDatabase(database: IDBDatabase): Promise<CapturedStore[]> {
+    // The stores that must share one consistent database transaction
+    const names = Array.from(database.objectStoreNames);
+    if (!names.length) return Promise.resolve([]);
+    // Inspect schema without requesting write access for ordinary stores
+    const schema = database.transaction(names, 'readonly');
+    // Whether capturing a generator requires a provisional insertion
+    const hasGenerator = names.some(
+      (name) => schema.objectStore(name).autoIncrement,
+    );
+    // The transaction whose record reads precede each provisional insertion
+    const transaction = hasGenerator
+      ? database.transaction(names, 'readwrite')
+      : schema;
+    return new Promise((resolve, reject) => {
+      // The raw records retained only after the transaction has aborted
+      const stores: CapturedStore[] = [];
+      // The number of successful reads or generator probes still outstanding
+      let remaining = names.length * 2;
+      // Whether our final request deliberately aborted the transaction
+      let expectedAbort = false;
+      // A synchronous setup or result failure reported after abort completes
+      let failure: unknown;
+      transaction.onabort = () => {
+        if (expectedAbort) resolve(stores);
+        else
+          reject(
+            failure ??
+              transaction.error ??
+              new Error('IndexedDB capture aborted'),
+          );
+      };
+      transaction.oncomplete = () =>
+        reject(new Error('IndexedDB capture unexpectedly committed'));
+
+      // Abort inside the last request event, before IndexedDB can auto-commit
+      function finishRequest(): void {
+        remaining--;
+        if (remaining === 0) {
+          expectedAbort = true;
+          transaction.abort();
+        }
+      }
+
+      // Collect one result; only a generator probe may report exhaustion
+      function watch<T>(
+        operation: IDBRequest<T>,
+        accept: (value: T) => void,
+        exhausted?: () => void,
+      ): void {
+        operation.onsuccess = () => {
+          try {
+            accept(operation.result);
+            finishRequest();
+          } catch (cause) {
+            failure = cause;
+            transaction.abort();
+          }
+        };
+        operation.onerror = (event) => {
+          if (exhausted && operation.error?.name === 'ConstraintError') {
+            event.preventDefault();
+            exhausted();
+            finishRequest();
+          }
+          // Other errors retain IndexedDB's normal transaction abort behavior
+        };
+      }
+
+      try {
+        for (const name of names) {
+          // The live store whose reads run before its temporary record is added
+          const store = transaction.objectStore(name);
+          if (store.autoIncrement) remaining++;
+          // The schema, records, and counter belonging to this object store
+          const captured: CapturedStore = {
+            name,
+            keyPath: store.keyPath,
+            autoIncrement: store.autoIncrement,
+            nextKey: null,
+            indexes: Array.from(store.indexNames, (indexName) => {
+              // The index definition needed to reconstruct its constraints
+              const index = store.index(indexName);
+              return {
+                name: index.name,
+                keyPath: index.keyPath,
+                unique: index.unique,
+                multiEntry: index.multiEntry,
+              };
+            }),
+            keys: [],
+            values: [],
+          };
+          stores.push(captured);
+          watch(store.getAllKeys(), (keys) => {
+            captured.keys = keys;
+          });
+          watch(store.getAll(), (values) => {
+            captured.values = values;
+          });
+          if (store.autoIncrement) {
+            // An empty object has no index keys except its generated inline key
+            // Aborting restores both this record and the generator's counter
+            // https://www.w3.org/TR/IndexedDB/#key-generator-concept
+            watch(
+              store.add({}),
+              (key) => {
+                if (typeof key !== 'number')
+                  throw new Error('IndexedDB generated a nonnumeric key');
+                captured.nextKey = key;
+              },
+              () => {
+                captured.nextKey = 'exhausted';
+              },
+            );
+          }
+        }
+      } catch (cause) {
+        failure = cause;
+        transaction.abort();
+      }
+    });
+  }
+
+  // Advance a new store's generator before restoring any real records
+  function restoreGenerator(
+    store: IDBObjectStore,
+    nextKey: StoreSnapshot['nextKey'],
+  ): void {
+    if (!store.autoIncrement) return;
+    if (
+      nextKey !== 'exhausted' &&
+      (typeof nextKey !== 'number' ||
+        !Number.isInteger(nextKey) ||
+        nextKey < 1 ||
+        nextKey > 2 ** 53)
+    ) {
+      throw new Error('IndexedDB snapshot has an invalid key generator');
+    }
+    if (nextKey === 1) return;
+    // An explicit key advances the generator even if its record is then deleted
+    const key = nextKey === 'exhausted' ? 2 ** 53 : nextKey! - 1;
+    // The temporary record cannot overwrite data because this store is new
+    const record: Record<string, unknown> = {};
+    if (store.keyPath === null) store.put(record, key);
+    else {
+      if (typeof store.keyPath !== 'string')
+        throw new Error('IndexedDB generator has a compound key path');
+      // The nested object that will receive the next key-path component
+      let parent = record;
+      // The inline key path used by the original object store
+      const path = store.keyPath.split('.');
+      for (let index = 0; index < path.length; index++) {
+        // The own property avoids special setters such as __proto__
+        const value = index === path.length - 1 ? key : {};
+        Object.defineProperty(parent, path[index], {
+          value,
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+        parent = value as Record<string, unknown>;
+      }
+      store.put(record);
+    }
+    store.delete(key);
+  }
+
   // Read all databases without keeping transactions alive across serialization
   async function readDatabases(): Promise<DatabaseSnapshot[]> {
     // The database names and versions currently registered for this origin
@@ -385,71 +562,24 @@ export async function websiteStorage(
       // The live database connection closed after its records are read
       const database = await openDatabase(info.name, info.version);
       try {
-        // The stores that participate in one consistent database transaction
-        const names = Array.from(database.objectStoreNames);
-        // The schema and encoded records for this database
+        // The consistent records and counters read before serialization begins
+        const raw = await captureDatabase(database);
+        // The JSON-safe stores written into the transfer snapshot
         const stores: StoreSnapshot[] = [];
-        if (names.length) {
-          // The read-only transaction spanning all stores in this database
-          const transaction = database.transaction(names, 'readonly');
-          // The completion listener attached before requests finish
-          const done = transactionDone(transaction);
-          // The reads issued synchronously to keep the transaction active
-          const pending = names.map((name) => {
-            // The store whose records and schema are captured together
-            const store = transaction.objectStore(name);
-            return {
-              name,
-              keyPath: store.keyPath,
-              autoIncrement: store.autoIncrement,
-              indexes: Array.from(store.indexNames, (indexName) => {
-                // The source index definition
-                const index = store.index(indexName);
-                return {
-                  name: index.name,
-                  keyPath: index.keyPath,
-                  unique: index.unique,
-                  multiEntry: index.multiEntry,
-                };
-              }),
-              keys: request(store.getAllKeys()),
-              values: request(store.getAll()),
-            };
-          });
-          // The resolved keys and values read before encoding any binary data
-          const [raw] = await Promise.all([
-            Promise.all(
-              pending.map(async (store) => {
-                // The paired reads observed together so either failure is
-                // handled
-                const [keys, values] = await Promise.all([
-                  store.keys,
-                  store.values,
-                ]);
-                return { ...store, keys, values };
-              }),
+        for (const store of raw) {
+          stores.push({
+            name: store.name,
+            keyPath: store.keyPath,
+            autoIncrement: store.autoIncrement,
+            nextKey: store.nextKey,
+            indexes: store.indexes,
+            records: await encode(
+              store.keys.map((key, index) => ({
+                key,
+                value: store.values[index],
+              })),
             ),
-            done,
-          ]);
-          for (const store of raw) {
-            if (store.autoIncrement) {
-              throw new Error(
-                'IndexedDB uses an auto-increment key generator that cannot be faithfully exported',
-              );
-            }
-            stores.push({
-              name: store.name,
-              keyPath: store.keyPath,
-              autoIncrement: store.autoIncrement,
-              indexes: store.indexes,
-              records: await encode(
-                store.keys.map((key, index) => ({
-                  key,
-                  value: store.values[index],
-                })),
-              ),
-            });
-          }
+          });
         }
         result.push({ name: info.name, version: database.version, stores });
       } finally {
@@ -519,6 +649,7 @@ export async function websiteStorage(
               // The store using inline or separate keys as originally
               // configured
               const store = transaction.objectStore(definition.name);
+              restoreGenerator(store, definition.nextKey);
               for (const record of definition.records) {
                 if (store.keyPath === null) store.put(record.value, record.key);
                 else store.put(record.value);

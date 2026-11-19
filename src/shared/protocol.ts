@@ -2,7 +2,7 @@
 export const HOST_NAME = 'com.calebevans.chrome_session_transfer';
 
 // The format version shared by the extension and native helper
-export const FORMAT_VERSION = 1;
+export const FORMAT_VERSION = 2;
 
 // A JSON-safe node in a graph of structured IndexedDB values
 export interface ValueNode {
@@ -40,6 +40,8 @@ export interface StoreSnapshot {
   keyPath: string | string[] | null;
   // Whether the store generates keys automatically
   autoIncrement: boolean;
+  // The next generated key; null means no generator, exhausted means no keys
+  nextKey: number | 'exhausted' | null;
   // The definitions used to recreate this store's indexes
   indexes: {
     // The index's name
