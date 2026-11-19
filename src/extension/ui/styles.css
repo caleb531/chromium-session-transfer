@@ -6,6 +6,8 @@
   --base-ink-700: #425653;
   --base-ink-500: #657571;
   --base-ink-200: #d9e0da;
+  /* A pale green-gray that is darker than the light page and panels */
+  --base-ink-50: #eef1ed;
   --base-green-700: #235c48;
   --base-green-100: #e6f1e7;
   --base-red-700: #a73535;
@@ -14,6 +16,8 @@
   --base-amber-800: #70531a;
   --base-night-950: #111a19;
   --base-night-900: #1a2725;
+  /* A raised dark tone that is lighter than the dark page and panels */
+  --base-night-800: #263632;
   --base-night-700: #405651;
   --base-mist-100: #e5eeea;
   --base-mist-300: #c1d0ca;
@@ -28,6 +32,8 @@
   /* The semantic palette assigns a purpose to each base color */
   --color-page: light-dark(var(--base-cream), var(--base-night-950));
   --color-surface: light-dark(var(--base-white), var(--base-night-900));
+  /* Distinguish editable controls from the surface behind them */
+  --color-field: light-dark(var(--base-ink-50), var(--base-night-800));
   --color-text: light-dark(var(--base-ink-950), var(--base-mist-100));
   --color-secondary: light-dark(var(--base-ink-700), var(--base-mist-300));
   --color-muted: light-dark(var(--base-ink-500), var(--base-mist-400));
@@ -128,7 +134,7 @@ select {
   border-radius: 8px;
   padding: 10px 12px;
   color: var(--color-text);
-  background: var(--color-surface);
+  background: var(--color-field);
 }
 select {
   /* Draw an inset chevron because native arrows ignore the content padding */
