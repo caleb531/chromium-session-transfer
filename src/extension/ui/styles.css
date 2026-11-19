@@ -250,6 +250,10 @@ label.field {
   display: grid;
   gap: 8px;
 }
+/* Separate adjacent fields without changing spacing inside each label */
+label.field + label.field {
+  margin-top: 16px;
+}
 .theme-control {
   display: flex;
   align-items: center;
