@@ -174,9 +174,10 @@
     anchor = id;
   }
 
-  // Request host access during the click gesture, then capture and send the
-  // batch
-  async function send(): Promise<void> {
+  // Handle native form submission, then request access and send the batch
+  async function send(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    if (busy || !ready || !selected.length) return;
     // The snapshot of the user's selection at the start of this operation
     const chosen = tabs.filter((tab) => selected.includes(tab.id!));
     // The host permission patterns needed for the selected origins
@@ -247,13 +248,17 @@
 
 <svelte:window onbeforeunload={guardTransfer} />
 
-<section class="panel">
+<form class="panel" onsubmit={send}>
   <div class="row between wrap">
     <div>
       <h2>Your tabs, your call.</h2>
       <p class="muted">Choose the pages to continue in Chrome.</p>
     </div>
-    <button disabled={busy} onclick={() => chrome.runtime.openOptionsPage()}>
+    <button
+      type="button"
+      disabled={busy}
+      onclick={() => chrome.runtime.openOptionsPage()}
+    >
       Settings
     </button>
   </div>
@@ -304,7 +309,23 @@
         {ready ? 'No matching tabs.' : 'Reading open tabs…'}
       </p>{/each}
   </div>
-</section>
+  <div class="row between wrap" style="margin-top: 20px">
+    <small>
+      {settings.behavior === 'close'
+        ? 'Close Brave tabs after success'
+        : 'Keep Brave tabs after success'}
+    </small>
+    <button
+      type="submit"
+      class="primary"
+      disabled={busy || !ready || !selected.length}
+    >
+      {busy
+        ? 'Transferring…'
+        : `Send ${selected.length || ''} ${selected.length === 1 ? 'tab' : 'tabs'} to Chrome`}
+    </button>
+  </div>
+</form>
 
 <p class="notice">
   Cookies, localStorage, IndexedDB, and each tab’s sessionStorage will be copied
@@ -318,22 +339,6 @@
   </code>). Only cookies applicable to the selected hosts and storage for the
   selected origins are exported.
 </p>
-<div class="row between wrap">
-  <small>
-    {settings.behavior === 'close'
-      ? 'Close Brave tabs after success'
-      : 'Keep Brave tabs after success'}
-  </small>
-  <button
-    class="primary"
-    disabled={busy || !ready || !selected.length}
-    onclick={send}
-  >
-    {busy
-      ? 'Transferring…'
-      : `Send ${selected.length || ''} ${selected.length === 1 ? 'tab' : 'tabs'} to Chrome`}
-  </button>
-</div>
 {#if message}<p
     role="status"
     aria-live="polite"
