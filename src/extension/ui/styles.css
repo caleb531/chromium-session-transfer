@@ -130,6 +130,31 @@ select {
   color: var(--color-text);
   background: var(--color-surface);
 }
+select {
+  /* Draw an inset chevron because native arrows ignore the content padding */
+  appearance: none;
+  padding-inline-end: 36px;
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent 43%,
+      var(--color-text) 43%,
+      var(--color-text) 57%,
+      transparent 57%
+    ),
+    linear-gradient(
+      -45deg,
+      transparent 43%,
+      var(--color-text) 43%,
+      var(--color-text) 57%,
+      transparent 57%
+    );
+  background-position:
+    right 18px center,
+    right 12px center;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
 input[type='checkbox'] {
   accent-color: var(--color-accent);
   width: 18px;
