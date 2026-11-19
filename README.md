@@ -272,7 +272,18 @@ pnpm check           # Check Svelte and TypeScript
 pnpm lint            # Run ESLint with Svelte and Prettier integration
 pnpm format          # Format source and configuration
 pnpm format:check    # Check formatting without editing files
+pnpm icons:generate # Generate extension PNGs and the helper's macOS ICNS
 ```
+
+Icon generation uses `public/app-icon.svg` as the single artwork source. It
+requires macOS and `rsvg-convert` from librsvg (`brew install librsvg`); macOS
+supplies `iconutil`. The script renders 16, 32, 48, and 128px PNGs into `public/`
+and packages the standard and Retina macOS sizes into one
+`src/host/macos/app-icon.icns`. Intermediate images are temporary and deleted.
+After changing artwork, run `pnpm icons:generate` and `pnpm build`, then reload
+the extension. Run `pnpm host:install` to update the bundle's icon too; if its
+identity changes, the installer resets only the helper's privacy grants and
+prints instructions for granting access again.
 
 The picker writes progress and failure details to its DevTools console. The
 native helper writes timestamped stages and error stacks (including nested

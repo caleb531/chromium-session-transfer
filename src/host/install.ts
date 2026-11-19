@@ -5,6 +5,7 @@ import {
   readFile,
   stat,
   unlink,
+  utimes,
   writeFile,
 } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -91,6 +92,11 @@ async function buildBundle(entry: string): Promise<string> {
     resolve(resources, 'launch.json'),
     JSON.stringify({ entry }) + '\n',
   );
+  // Keep the macOS icon inside the bundle so signing seals its artwork too
+  await copyFile(
+    resolve(dirname(entry), '../../src/host/macos/app-icon.icns'),
+    resolve(resources, 'app-icon.icns'),
+  );
   await writeFile(
     resolve(bundle, 'Contents/Info.plist'),
     `<?xml version="1.0" encoding="UTF-8"?>
@@ -99,6 +105,7 @@ async function buildBundle(entry: string): Promise<string> {
 <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
 <key>CFBundleExecutable</key><string>session-transfer-helper</string>
 <key>CFBundleName</key><string>Chromium Session Transfer Helper</string>
+<key>CFBundleIconFile</key><string>app-icon.icns</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>
@@ -115,6 +122,10 @@ async function buildBundle(entry: string): Promise<string> {
     ['--verify', '--deep', '--strict', bundle],
     { stdio: 'inherit' },
   );
+  // Replacing files inside Contents leaves the app directory's timestamp alone
+  // Refresh it so macOS can detect updated icon and bundle metadata
+  const modified = new Date();
+  await utimes(bundle, modified, modified);
   // Let macOS resolve the helper by bundle ID when displaying privacy entries
   // A native messaging launch alone does not perform this app registration
   execFileSync(launcher, ['--register'], { stdio: 'inherit' });

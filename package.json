@@ -11,6 +11,7 @@
     "node": ">=24"
   },
   "scripts": {
+    "icons:generate": "node scripts/generate-icons.ts",
     "dev": "vite build --watch",
     "build": "vite build && pnpm build:host",
     "build:host": "tsc -p tsconfig.host.json",

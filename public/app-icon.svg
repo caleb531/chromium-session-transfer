@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 785 785" role="img" aria-label="Chromium session transfer">
+  <defs>
+    <linearGradient id="topBlue" x1="619" y1="256" x2="619" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0051d0"/>
+      <stop offset="0.53" stop-color="#004bc6"/>
+      <stop offset="1" stop-color="#0046bc"/>
+    </linearGradient>
+    <linearGradient id="leftBlue" x1="240" y1="434" x2="643" y2="1020" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3885f7"/>
+      <stop offset="1" stop-color="#317cf2"/>
+    </linearGradient>
+    <linearGradient id="rightBlue" x1="1066" y1="448" x2="544" y2="1022" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8dbdff"/>
+      <stop offset="1" stop-color="#89bafb"/>
+    </linearGradient>
+    <linearGradient id="centerBlue" x1="618" y1="448" x2="618" y2="842" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#004ecb"/>
+      <stop offset="0.52" stop-color="#0048bf"/>
+      <stop offset="1" stop-color="#0043b7"/>
+    </linearGradient>
+    <clipPath id="disc">
+      <circle cx="618.5" cy="639.5" r="380.5"/>
+    </clipPath>
+  </defs>
+  <!-- Optional canvas background (uncomment and choose a fill): -->
+  <!-- <rect x="0" y="0" width="100%" height="100%" fill="#ffffff"/> -->
+  <g transform="translate(-226 -247)">
+  <g clip-path="url(#disc)">
+    <rect x="235" y="254" width="770" height="773" fill="url(#topBlue)"/>
+    <path d="M293 432 454 696 684 847 568 1028 213 1040 211 433Z" fill="url(#leftBlue)"/>
+    <path d="M734 462H1020V1033H565L684 847 619 701 620 462Z" fill="url(#rightBlue)"/>
+  </g>
+  <ellipse cx="617" cy="646" rx="223" ry="227" fill="#fdfdfd"/>
+  <ellipse cx="618" cy="646" rx="193" ry="195" fill="url(#centerBlue)"/>
+  <!-- Both arrows retain the original sharp-cornered shape, scaled uniformly. -->
+  <g fill="#fdfdfd">
+    <path d="M486.3 615H654V545L765 646 654 747V676H486.3Z"
+          transform="translate(618 563) scale(.75) translate(-625.65 -646)"/>
+    <path d="M486.3 615H654V545L765 646 654 747V676H486.3Z"
+          transform="translate(618 729) scale(-.75 .75) translate(-625.65 -646)"/>
+  </g>
+  </g>
+</svg>
