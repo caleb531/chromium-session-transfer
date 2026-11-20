@@ -3,6 +3,7 @@
   import { DEFAULT_SETTINGS, readSettings, writeSettings } from '../settings';
   import type { Settings } from '../settings';
   import Options from './Options.svelte';
+  import PageHeading from './PageHeading.svelte';
   import Picker from './Picker.svelte';
   // Whether this extension page is the settings panel
   const options = location.pathname.endsWith('options.html');
@@ -53,7 +54,7 @@
 </script>
 
 <main>
-  <header>
+  <div class="page-intro">
     <label class="theme-control">
       Theme
       <select value={theme} onchange={changeTheme}>
@@ -62,35 +63,20 @@
         <option value="light">Light</option>
       </select>
     </label>
-    <div class="page-heading">
-      {#if !options}
-        <img src="/app-icon.svg" width="76" height="76" alt="" />
-      {/if}
-      <div>
-        <h1>
-          {options ? 'Make yourself at home.' : 'Chromium Session Transfer'}
-        </h1>
-        <p class="muted">
-          {options
-            ? 'Chromium Session Transfer'
-            : 'Transfer tabs to another Chromium browser'}
-        </p>
-      </div>
-    </div>
+    <PageHeading
+      title={options ? 'Extension Settings' : 'Chromium Session Transfer'}
+      subtitle={options
+        ? 'Chromium Session Transfer'
+        : 'Transfer tabs to another Chromium browser'}
+    />
     {#if themeError}<p role="status" class="error">{themeError}</p>{/if}
-  </header>
+  </div>
   {#if options}<Options />{:else}<Picker />{/if}
 </main>
 
 <style>
-  /* Keep the picker icon beside both lines without shrinking it */
-  .page-heading {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-  }
-
-  .page-heading img {
-    flex-shrink: 0;
+  /* Separate the heading, theme control, and any error from the first panel */
+  .page-intro {
+    margin-bottom: 32px;
   }
 </style>
