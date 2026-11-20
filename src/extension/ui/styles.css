@@ -50,6 +50,17 @@
   --color-danger-soft: light-dark(var(--base-red-100), var(--base-rose-950));
   --color-notice: light-dark(var(--base-amber-800), var(--base-gold-300));
   --color-notice-soft: light-dark(var(--base-amber-100), var(--base-gold-950));
+  /* Tint the message outlines with their foreground colors in both themes */
+  --color-danger-border: color-mix(
+    in srgb,
+    var(--color-danger) 24%,
+    var(--color-danger-soft)
+  );
+  --color-notice-border: color-mix(
+    in srgb,
+    var(--color-notice) 24%,
+    var(--color-notice-soft)
+  );
 
   /* Follow the system unless the user explicitly chooses a color scheme */
   color-scheme: light dark;
@@ -208,12 +219,14 @@ small {
 .notice {
   color: var(--color-notice);
   background: var(--color-notice-soft);
+  border: 1px solid var(--color-notice-border);
   border-radius: 8px;
   padding: 12px 16px;
 }
 .error {
   color: var(--color-danger);
   background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger-border);
   border-radius: 8px;
   padding: 12px 16px;
 }
