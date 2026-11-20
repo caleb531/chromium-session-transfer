@@ -68,9 +68,13 @@
       {/if}
       <div>
         <h1>
-          {options ? 'Make yourself at home.' : 'Pick up where you left off.'}
+          {options ? 'Make yourself at home.' : 'Chromium Session Transfer'}
         </h1>
-        <p class="muted">Chromium Session Transfer</p>
+        <p class="muted">
+          {options
+            ? 'Chromium Session Transfer'
+            : 'Transfer tabs to another Chromium browser'}
+        </p>
       </div>
     </div>
     {#if themeError}<p role="status" class="error">{themeError}</p>{/if}

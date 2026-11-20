@@ -329,7 +329,7 @@
 <form class="panel" onsubmit={send}>
   <div class="row between wrap">
     <div>
-      <h2>Your tabs, your call.</h2>
+      <h2>Choose tabs to transfer</h2>
       <p class="muted">Choose the pages to continue in {destination.name}.</p>
     </div>
     <button
