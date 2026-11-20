@@ -1,12 +1,16 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import type { Component } from 'svelte';
   import { DEFAULT_SETTINGS, readSettings, writeSettings } from '../settings';
   import type { Settings } from '../settings';
-  import Options from './Options.svelte';
   import PageHeading from './PageHeading.svelte';
-  import Picker from './Picker.svelte';
-  // Whether this extension page is the settings panel
-  const options = location.pathname.endsWith('options.html');
+
+  // The heading text and page component supplied by the entry point
+  let {
+    title,
+    subtitle,
+    page: Page,
+  }: { title: string; subtitle: string; page: Component } = $props();
   // The saved theme choice shared by the picker and settings pages
   let theme = $state<Settings['theme']>(DEFAULT_SETTINGS.theme);
   // The message displayed if the theme preference cannot be saved
@@ -63,15 +67,10 @@
         <option value="light">Light</option>
       </select>
     </label>
-    <PageHeading
-      title={options ? 'Extension Settings' : 'Chromium Session Transfer'}
-      subtitle={options
-        ? 'Chromium Session Transfer'
-        : 'Transfer tabs to another Chromium browser'}
-    />
+    <PageHeading {title} {subtitle} />
     {#if themeError}<p role="status" class="error">{themeError}</p>{/if}
   </div>
-  {#if options}<Options />{:else}<Picker />{/if}
+  <Page />
 </main>
 
 <style>
