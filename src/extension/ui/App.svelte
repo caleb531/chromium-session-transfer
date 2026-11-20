@@ -54,17 +54,14 @@
 
 <main>
   <header>
-    <div class="row between wrap">
-      <span class="eyebrow">BRAVE → CHROME</span>
-      <label class="theme-control">
-        Theme
-        <select value={theme} onchange={changeTheme}>
-          <option value="system">System</option>
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-        </select>
-      </label>
-    </div>
+    <label class="theme-control">
+      Theme
+      <select value={theme} onchange={changeTheme}>
+        <option value="system">System</option>
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </label>
     <div class="page-heading">
       {#if !options}
         <img src="/app-icon.svg" width="76" height="76" alt="" />
