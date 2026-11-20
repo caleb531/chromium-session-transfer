@@ -194,16 +194,17 @@ pnpm format:check    # Check formatting
 pnpm format          # Apply formatting
 ```
 
-After an extension build, click **Reload** on its card in the source browser's
-extensions page, then reopen or reload the picker. Helper changes take effect
-on the next transfer after compiling. Build both sides and reload the extension
-when changing shared transfer types or the native messaging protocol.
+After rebuilding picker or Settings code or assets, refresh or reopen the
+affected tab. For manifest or background service worker changes, click **Reload**
+on the extension's card in the source browser's extensions page. Helper changes
+take effect on the next transfer after compiling. For native messaging protocol
+changes, build both sides and refresh the picker.
 
-Routine code changes need a build and extension reload, without reinstalling the
-helper or resetting permissions. Run `pnpm host:install` again after moving the
-checkout, changing the native launcher or helper icon, updating Node, or removing
-the helper registration. Reinstallation may require granting browser access
-again in Files & Folders; follow the installer's instructions.
+Routine builds preserve the installed helper and its permissions. Run
+`pnpm host:install` again after moving the checkout, changing the native launcher
+or helper icon, updating Node, or removing the helper registration. Reinstallation
+may require granting browser access again in Files & Folders. Follow the
+installer's instructions.
 
 ### Regenerate icons
 
