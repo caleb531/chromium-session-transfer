@@ -30,6 +30,9 @@ stale, update the relevant guidance alongside the change.
 
 ## Development and verification
 
+- Run the appropriate build after changes that affect build output. Use
+  `pnpm build:host` for helper-only changes and `pnpm build` for extension or
+  shared code changes. Documentation-only changes can skip the build.
 - Keep routine builds separate from `host:install`. Reinstallation can change
   the helper's signing identity and reset its macOS privacy grants. Use the
   [README](README.md#working-on-the-project) for build, refresh, and reinstall
