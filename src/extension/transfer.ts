@@ -7,7 +7,7 @@ import type {
 } from '../shared/protocol.js';
 import { websiteStorage } from '../shared/storage.js';
 import { cookieSite, selectedPartition } from '../shared/sites.js';
-import { describeError } from '../shared/errors.js';
+import { describeError, errorChain } from '../shared/errors.js';
 import { BROWSERS } from '../shared/browsers.js';
 import type { BrowserId } from '../shared/browsers.js';
 
@@ -180,6 +180,10 @@ export async function transferTabs(
     return await sendToHelper(payload, report);
   } catch (cause) {
     console.error('[chromium-session-transfer] Native messaging failed', cause);
-    throw new Error(`Native helper connection failed: ${describeError(cause)}`);
+    // Include the detail here only if the picker can't read it from the cause
+    const message = errorChain(cause).length
+      ? 'Native helper connection failed'
+      : `Native helper connection failed: ${describeError(cause)}`;
+    throw new Error(message, { cause });
   }
 }
