@@ -185,7 +185,7 @@ browser/profile as the source are not supported.
 ## Working on the project
 
 ```sh
-pnpm dev             # Watch and rebuild the extension
+pnpm dev             # Start WXT and watch for extension changes
 pnpm build:host      # Compile the helper and shared Node modules
 pnpm build           # Build both the extension and helper
 pnpm check           # Check Svelte and TypeScript
@@ -194,11 +194,15 @@ pnpm format:check    # Check formatting
 pnpm format          # Apply formatting
 ```
 
-After rebuilding picker or Settings code or assets, refresh or reopen the
-affected tab. For manifest or background service worker changes, click **Reload**
-on the extension's card in the source browser's extensions page. Helper changes
-take effect on the next transfer after compiling. For native messaging protocol
-changes, build both sides and refresh the picker.
+WXT watches for changes on a local development server. Load `dist/extension`
+in your usual source browser. If the extension was already loaded when you
+started or restarted the dev server, click **Reload** on its card to reconnect
+it. Refresh or reopen the picker or Settings tab if it needs to pick up changes.
+
+Dev and production builds share `dist/extension`. Stop `pnpm dev` before running
+`pnpm build`, then reload the extension to use the production build. Helper
+changes take effect on the next transfer after compiling. For native messaging
+protocol changes, build both sides and refresh the picker.
 
 Routine builds preserve the installed helper and its permissions. Run
 `pnpm host:install` again after moving the checkout, changing the native launcher

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.wxt/
 .DS_Store
 *.log
 .env

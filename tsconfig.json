@@ -1,9 +1,11 @@
 {
+  "extends": "./.wxt/tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
+    "noUncheckedIndexedAccess": false,
     "noEmit": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
@@ -12,10 +14,11 @@
     "types": ["chrome", "vite/client", "node"]
   },
   "include": [
+    ".wxt/wxt.d.ts",
     "src/extension",
     "src/shared",
     "scripts",
-    "vite.config.ts",
+    "wxt.config.ts",
     "svelte.config.js"
   ]
 }

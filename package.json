@@ -11,8 +11,8 @@
   },
   "scripts": {
     "icons:generate": "node scripts/generate-icons.ts",
-    "dev": "vite build --watch",
-    "build": "vite build && pnpm build:host",
+    "dev": "wxt",
+    "build": "wxt build && pnpm build:host",
     "build:host": "tsc -p src/host/tsconfig.json && cp src/host/loading-page.html dist/host/loading-page.html",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p src/host/tsconfig.json --noEmit",
     "lint": "eslint .",
@@ -20,7 +20,8 @@
     "format:check": "prettier --check .",
     "host:install": "node dist/host/install.js",
     "host:reset-permissions": "node dist/host/install.js --reset-permissions",
-    "host:uninstall": "node dist/host/install.js --uninstall"
+    "host:uninstall": "node dist/host/install.js --uninstall",
+    "postinstall": "wxt prepare"
   },
   "dependencies": {
     "puppeteer-core": "^25.18.1",
@@ -43,13 +44,13 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.73.0",
     "vite": "^8.3.8",
-    "vite-plugin-web-extension": "^4.5.1"
+    "wxt": "^0.21.5"
   },
   "devEngines": {
-		"packageManager": {
-			"name": "pnpm",
-			"version": "^12.0.0",
-			"onFail": "ignore"
-		}
-	}
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^12.0.0",
+      "onFail": "ignore"
+    }
+  }
 }
