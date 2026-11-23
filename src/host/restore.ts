@@ -312,8 +312,8 @@ export async function importToBrowser(
   const sites = [...new Set(payload.tabs.map((tab) => cookieSite(tab.url)))];
   // The debugging session used only for cookie operations
   let session: CDPSession | undefined;
-  // The current phase used in errors without printing exported records
-  let phase = 'checking the destination';
+  // The current phase label shown in progress updates and quoted in errors
+  let phase = 'Checking the destination';
   progress(phase);
   try {
     session = await browser.target().createCDPSession();
@@ -363,7 +363,7 @@ export async function importToBrowser(
 
     await checkpointCookies();
     await checkOpenTabs();
-    phase = 'waiting for background workers';
+    phase = 'Waiting for background workers';
     // A completed wait invalidates the earlier cookie checkpoint and tab check
     const waited = await waitForWorkers(browser, origins, (remaining) => {
       progress(
@@ -374,11 +374,11 @@ export async function importToBrowser(
       await checkpointCookies();
       await checkOpenTabs();
     }
-    phase = 'preparing destination pages';
+    phase = 'Preparing destination pages';
     progress(phase);
     for (const tab of payload.tabs)
       pages.push(await preparePage(browser, tab.origin));
-    phase = 'capturing destination backups';
+    phase = 'Capturing destination backups';
     progress(phase);
     for (const origin of payload.origins) {
       // The first script-free tab for this shared origin
@@ -389,7 +389,7 @@ export async function importToBrowser(
         snapshot: await readStorage(page),
       });
     }
-    phase = 'restoring website storage';
+    phase = 'Restoring website storage';
     progress(phase);
     for (const origin of payload.origins) {
       touched.add(origin.origin);
@@ -433,7 +433,7 @@ export async function importToBrowser(
         );
       }
     }
-    phase = 'restoring cookies';
+    phase = 'Restoring cookies';
     progress(phase);
     cookiesTouched = true;
     await clearCookies(session, pages[0], domains, sites);
@@ -468,7 +468,7 @@ export async function importToBrowser(
         throw new Error(`${destination.name} rejected a cookie`);
       }
     }
-    phase = 'opening transferred pages';
+    phase = 'Opening transferred pages';
     progress(phase);
     navigating = true;
     for (let index = 0; index < pages.length; index++) {
@@ -487,7 +487,7 @@ export async function importToBrowser(
       message: `Restored stored state and opened ${pages.length} ${pages.length === 1 ? 'tab' : 'tabs'} in ${destination.name}. Check the websites to confirm their sessions were accepted`,
     };
   } catch (cause) {
-    logError(`Transfer failed while ${phase}`, cause);
+    logError(`Transfer failed while ${phase.toLowerCase()}`, cause);
     if (navigating) {
       return {
         ok: false,
@@ -525,7 +525,7 @@ export async function importToBrowser(
         );
     return {
       ok: false,
-      message: `Transfer failed while ${phase}. Source tabs were kept. ${!touched.size && !cookiesTouched ? 'Nothing was imported' : rolledBack ? 'Destination changes were rolled back before website navigation' : 'Some destination state could not be rolled back; review the destination browser before retrying'}. Details: ${describeError(cause)}`,
+      message: `Transfer failed during ${phase.toLowerCase()}. Source tabs were kept. ${!touched.size && !cookiesTouched ? 'Nothing was imported' : rolledBack ? 'Destination changes were rolled back before website navigation' : 'Some destination state could not be rolled back; review the destination browser before retrying'}. Details: ${describeError(cause)}`,
     };
   } finally {
     await session
