@@ -40,11 +40,13 @@
   let anchor: number | null = null;
   // The latest query number prevents older tab snapshots replacing newer ones
   let refreshId = 0;
+  // Case-insensitive patterns for the terms in the current search
+  const searchTerms = $derived(
+    (search.match(/\S+/g) ?? []).map(buildSearchTermPattern),
+  );
   // The currently visible subset of the tab list
   const visible = $derived(
-    tabs.filter((tab) =>
-      `${tab.title} ${tab.url}`.toLowerCase().includes(search.toLowerCase()),
-    ),
+    searchTerms.length ? tabs.filter(matchesSearch) : tabs,
   );
   // Whether every tab in the filtered list is currently selected
   const allVisible = $derived(
@@ -54,6 +56,32 @@
   const someVisible = $derived(
     visible.some((tab) => selected.includes(tab.id!)) && !allVisible,
   );
+
+  // Build a pattern that matches a search term from the start of a word
+  function buildSearchTermPattern(term: string): RegExp {
+    // Escape punctuation so users can search for literal URL fragments
+    const literal = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // A term that starts with punctuation supplies its own boundary (e.g. .com)
+    const boundary = /^[\p{L}\p{M}\p{N}]/u.test(term)
+      ? String.raw`(?<![\p{L}\p{M}\p{N}])`
+      : '';
+    return new RegExp(`${boundary}${literal}`, 'giu');
+  }
+
+  // Check if the search terms match in order, allowing words between them
+  function matchesSearch(tab: chrome.tabs.Tab): boolean {
+    // The title and URL searched in the same order as they appear in the row
+    const text = `${tab.title ?? ''} ${tab.url ?? ''}`;
+    // The position after the last matched term, or the start of the row
+    let offset = 0;
+    // Each pattern starts its search where the previous match ended
+    for (const pattern of searchTerms) {
+      pattern.lastIndex = offset;
+      if (!pattern.test(text)) return false;
+      offset = pattern.lastIndex;
+    }
+    return true;
+  }
 
   // Update live tabs while retaining choices for pages that keep their origin
   async function refresh(): Promise<void> {

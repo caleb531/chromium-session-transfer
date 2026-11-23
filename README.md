@@ -89,8 +89,9 @@ No browser restart is normally needed.
 3. Click the extension's toolbar icon, or press **Option+Shift+C**, to open the
    tab picker.
 4. Choose the destination browser and select the tabs to send. Search by title
-   or URL; the header checkbox selects the filtered list, and Shift-click selects
-   a range. The list updates automatically as tabs change.
+   or URL using word prefixes in order, such as `Wo Ti` for `Workday Time
+   Calculator`. The header checkbox selects the filtered list, and Shift-click
+   selects a range. The list updates automatically as tabs change.
 5. Click **Send … tabs to Google Chrome** (or the selected destination).
 6. Allow website access in the source browser if prompted, and approve the
    destination's debugging connection if prompted.
