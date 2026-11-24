@@ -269,19 +269,6 @@ label.field {
 label.field + label.field {
   margin-top: 16px;
 }
-.theme-control {
-  display: flex;
-  align-items: center;
-  /* Align the label to the right without widening its click target */
-  width: fit-content;
-  margin-inline-start: auto;
-  gap: 10px;
-  color: var(--color-secondary);
-  font-size: 14px;
-}
-.theme-control select {
-  width: auto;
-}
 @media (max-width: 600px) {
   main {
     padding: 28px 16px;

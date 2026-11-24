@@ -59,15 +59,7 @@
 
 <main>
   <div class="page-intro">
-    <label class="theme-control">
-      Theme
-      <select value={theme} onchange={changeTheme}>
-        <option value="system">System</option>
-        <option value="dark">Dark</option>
-        <option value="light">Light</option>
-      </select>
-    </label>
-    <PageHeading {title} {subtitle} />
+    <PageHeading {title} {subtitle} {theme} {changeTheme} />
     {#if themeError}<p role="status" class="error">{themeError}</p>{/if}
   </div>
   <Page />
