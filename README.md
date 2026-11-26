@@ -116,7 +116,7 @@ Open **Settings** from the picker to change:
   a successful transfer
 - **Close the picker after a successful transfer:** enabled by default; disable
   it to keep successful results visible
-- **Saved domain patterns:** add, edit, or delete patterns that preselect tabs,
+- **Preselected domains:** add, edit, or delete patterns that preselect tabs,
   such as `https://*.example.com/*`, `*://example.com/*`, or `http://localhost/*`
 
 Selected tab origins are added to the saved patterns when you send them. Patterns

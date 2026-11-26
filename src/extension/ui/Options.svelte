@@ -130,11 +130,11 @@
 </section>
 
 <section class="panel">
-  <h2>Saved domains</h2>
+  <h2>Preselected domains</h2>
   <p class="muted">
-    Matching tabs are preselected in the picker. Selecting a new website saves
-    its host after you grant access. Chromium host permissions apply to all
-    ports.
+    Tabs that match these domain patterns start already checked when you open
+    the picker. Sending tabs from a new website saves its host after access is
+    granted. Chromium host permissions apply to all ports.
   </p>
   <form class="row wrap" onsubmit={submit}>
     <label class="field" style="flex: 1; min-width: 240px">
